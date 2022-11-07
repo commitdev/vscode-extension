@@ -1,37 +1,36 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
+import { Auth0AuthenticationProvider, AUTH_TYPE } from "./auth0AuthProvider";
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-  // Use the console to output diagnostic information (console.log) and errors (console.error)
-  // This line of code will only be executed once when your extension is activated
   console.log(
-    'Congratulations, your extension "vscode-extension" is now active!'
+    'Congratulations, your extension "Commit Extension" is now active!'
   );
 
-  // The command has been defined in the package.json file
-  // Now provide the implementation of the command with registerCommand
-  // The commandId parameter must match the command field in package.json
-  let disposable = vscode.commands.registerCommand(
-    "vscode-extension.commit",
-    () => {
-      // Add new Message with Button with text Authenticate
-      vscode.window
-        .showInformationMessage("Authenticate", "Authenticate")
-        .then((selection) => {
-          if (selection === "Authenticate") {
-            vscode.window.showInformationMessage(
-              "You have successfully authenticated!"
-            );
-          }
-        });
-    }
-  );
+  const subscriptions = context.subscriptions;
 
-  context.subscriptions.push(disposable);
+  subscriptions.push(new Auth0AuthenticationProvider(context));
+
+  getAuth0Sessions();
+
+  subscriptions.push(
+    vscode.authentication.onDidChangeSessions(async (e) => {
+      console.log("onDidChangeSessions", e);
+      getAuth0Sessions();
+    })
+  );
 }
+
+const getAuth0Sessions = async () => {
+  const session = await vscode.authentication.getSession(AUTH_TYPE, [], {
+    createIfNone: false,
+  });
+
+  if (session) {
+    vscode.window.showInformationMessage(
+      `Welcome back ${session.account.label}!`
+    );
+  }
+};
 
 // This method is called when your extension is deactivated
 export function deactivate() {}

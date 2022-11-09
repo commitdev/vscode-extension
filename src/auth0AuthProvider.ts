@@ -16,11 +16,11 @@ import {
 } from "vscode";
 
 export const AUTH_TYPE = `auth0`;
-const AUTH_NAME = `Auth0`;
+const AUTH_NAME = `Commit`;
 const CLIENT_ID = "6UcJAI6tXW6leADCdqsGqo5Aoo4fL5C8";
 const AUTH0_DOMAIN = "https://commit-staging.us.auth0.com";
-const COMMIT_GRAPHQL_ENDPOINT = "https://api.commit-staging.dev/graphql";
 const COMMIT_API_BASE_URL = "https://api.commit-staging.dev";
+const COMMIT_APP_BASE_URL = "https://app.commit-staging.dev";
 const SESSIONS_SECRET_KEY = `${AUTH_TYPE}.sessions`;
 
 class UriEventHandler extends EventEmitter<Uri> implements UriHandler {
@@ -162,8 +162,8 @@ export class Auth0AuthenticationProvider
         headers: {
           "content-type": "application/json",
           cookie: `helix_session_token=${token}`,
-          origin: "https://app.commit-staging.dev",
-          referer: "https://app.commit-staging.dev/",
+          origin: COMMIT_APP_BASE_URL,
+          referer: COMMIT_APP_BASE_URL,
         },
       }
     );
@@ -173,7 +173,6 @@ export class Auth0AuthenticationProvider
     }
 
     const data = (await response.json()) as any;
-    console.log(`data: ${JSON.stringify(data, null, 2)}`);
     return {
       email: data.email,
       id: data.id,

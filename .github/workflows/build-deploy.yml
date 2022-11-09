@@ -17,6 +17,7 @@ jobs:
           node-version: 14.12.0
       - run: npm install
       - run: npm install -g vsce
+      - run: vsce package
       # Read the version from the package.json file
       - run: echo "VERSION=$(node -p -e "require('./package.json').version")" >> $GITHUB_ENV
       # Upload the VSIX file as an artifact with version number
@@ -25,10 +26,10 @@ jobs:
           name: commit-extension-${{ env.VERSION }}
           path: ./*.vsix
 
-      # Upload the VSIX file to the Github release
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ./*.vsix
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # # Upload the VSIX file to the Github release
+      # - name: Create Release
+      #   uses: softprops/action-gh-release@v1
+      #   with:
+      #     files: ./*.vsix
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

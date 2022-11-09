@@ -20,7 +20,7 @@ jobs:
       # Read the version from the package.json file
       - run: echo "VERSION=$(node -p -e "require('./package.json').version")" >> $GITHUB_ENV
       # Upload the VSIX file as an artifact with version number
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: commit-extension-${{ env.VERSION }}
-          path: *.vsix
+          path: ./*.vsix

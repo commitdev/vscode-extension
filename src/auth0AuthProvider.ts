@@ -330,6 +330,6 @@ export class Auth0AuthenticationProvider
       await new Promise((resolve) => setTimeout(resolve, interval * 1000));
     }
 
-    throw new Error("Auth0 login timed out");
+    throw new Error("Commit login timed out");
   }
 }

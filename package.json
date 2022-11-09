@@ -1,6 +1,13 @@
 {
   "name": "commit-extension",
   "publisher": "vscode",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/commitdev/vscode-extension"
+  },
+  "author": {
+    "name": "Daman Dhillon"
+  },
   "displayName": "Commit Extension",
   "description": "Allow developers to log work on Commit Projects as Latest Updates",
   "version": "0.0.1",

@@ -3,8 +3,6 @@ run-name: Initiated by ${{ github.actor }}
 # Run on main branch with tag v*.*.*
 on:
   push:
-    branches:
-      - main
     tags:
       - v*.*.*
 jobs:
@@ -26,10 +24,10 @@ jobs:
           name: commit-extension-${{ env.VERSION }}
           path: ./*.vsix
 
-      # # Upload the VSIX file to the Github release
-      # - name: Create Release
-      #   uses: softprops/action-gh-release@v1
-      #   with:
-      #     files: ./*.vsix
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Upload the VSIX file to the Github release
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ./*.vsix
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

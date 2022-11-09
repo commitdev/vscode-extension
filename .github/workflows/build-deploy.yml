@@ -26,7 +26,7 @@ jobs:
 
   # Create a release with the version number
   deploy:
-    needs: build-deploy
+    needs: build
     runs-on: ubuntu-latest
     steps:
       # Download the VSIX file from the artifact

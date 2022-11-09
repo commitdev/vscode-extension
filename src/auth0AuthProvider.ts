@@ -1,10 +1,3 @@
-import {
-  ApolloClient,
-  createHttpLink,
-  gql,
-  InMemoryCache,
-} from "@apollo/client";
-import { setContext } from "@apollo/client/link/context";
 import fetch from "node-fetch";
 import { v4 as uuid } from "uuid";
 import {
@@ -27,6 +20,7 @@ const AUTH_NAME = `Auth0`;
 const CLIENT_ID = "6UcJAI6tXW6leADCdqsGqo5Aoo4fL5C8";
 const AUTH0_DOMAIN = "https://commit-staging.us.auth0.com";
 const COMMIT_GRAPHQL_ENDPOINT = "https://api.commit-staging.dev/graphql";
+const COMMIT_API_BASE_URL = "https://api.commit-staging.dev";
 const SESSIONS_SECRET_KEY = `${AUTH_TYPE}.sessions`;
 
 class UriEventHandler extends EventEmitter<Uri> implements UriHandler {
@@ -34,6 +28,12 @@ class UriEventHandler extends EventEmitter<Uri> implements UriHandler {
     this.fire(uri);
   }
 }
+
+type UserInfo = {
+  email: string;
+  id: string;
+  name: string;
+};
 
 export class Auth0AuthenticationProvider
   implements AuthenticationProvider, Disposable
@@ -89,14 +89,14 @@ export class Auth0AuthenticationProvider
         throw new Error(`Auth0 login failure`);
       }
 
-      // const userInfo = await this._getUserInfo(token);
+      const userInfo = await this._getUserInfo(token);
 
       const session: AuthenticationSession = {
         id: uuid(),
         accessToken: token,
         account: {
-          label: "Daman Dhillon",
-          id: "daman_dhillon",
+          label: userInfo.name,
+          id: userInfo.id,
         },
         scopes: [],
       };
@@ -117,44 +117,6 @@ export class Auth0AuthenticationProvider
       window.showErrorMessage(`Sign in failed: ${e}`);
       throw e;
     }
-  }
-
-  /**
-   * Get User Info
-   * @param token
-   * @returns
-   * @private
-   */
-  private async _getUserInfo(token: string) {
-    // Create Apollo Link to talk to GrpahQL API
-    const httpLink = createHttpLink({
-      uri: COMMIT_GRAPHQL_ENDPOINT,
-    });
-
-    const authLink = setContext((_, { headers }) => {
-      return {
-        headers: {
-          ...headers,
-          authorization: token ? `Bearer ${token}` : "",
-        },
-      };
-    });
-
-    const client = new ApolloClient({
-      link: authLink.concat(httpLink),
-      cache: new InMemoryCache(),
-    });
-
-    const { data } = await client.query({
-      query: gql`
-        query {
-          me {
-            id
-            name
-          }
-        }
-      `,
-    });
   }
 
   /**
@@ -183,6 +145,40 @@ export class Auth0AuthenticationProvider
    */
   public async dispose() {
     this._disposable.dispose();
+  }
+
+  /**
+   * Get User Info
+   * @param token
+   * @returns
+   * @private
+   */
+  private async _getUserInfo(token: string): Promise<UserInfo> {
+    // Make POST request to get user info
+    const response = await fetch(
+      `${COMMIT_API_BASE_URL}/v1/auth.get-own-user`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          cookie: `helix_session_token=${token}`,
+          origin: "https://app.commit-staging.dev",
+          referer: "https://app.commit-staging.dev/",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Get user info failed: ${response.statusText}`);
+    }
+
+    const data = (await response.json()) as any;
+    console.log(`data: ${JSON.stringify(data, null, 2)}`);
+    return {
+      email: data.email,
+      id: data.id,
+      name: data.name,
+    };
   }
 
   /**

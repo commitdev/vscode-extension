@@ -125,7 +125,7 @@ const getAuth0Sessions = async () => {
 
   if (session) {
     vscode.window.showInformationMessage(
-      `Welcome back ${session.account.label}!`
+      `Welcome ${session.account.label} to Commit!`
     );
   }
 

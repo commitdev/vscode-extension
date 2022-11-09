@@ -228,7 +228,7 @@ export class Auth0AuthenticationProvider
     return await window.withProgress<string>(
       {
         location: ProgressLocation.Notification,
-        title: "Signing in to Auth0...",
+        title: "Signing in to Commit...",
         cancellable: true,
       },
       async (_, __) => {
@@ -249,9 +249,26 @@ export class Auth0AuthenticationProvider
         const registerDeviceResponse = await this._registerDeviceCode(scopes);
         const endTime = Date.now() + registerDeviceResponse.expiresIn * 1000;
 
+        // Extract the user code from the verificationUriComplete
+        const userCode =
+          registerDeviceResponse.verificationUriComplete.match(
+            /user_code=([^&]+)/
+          )?.[1];
+
+        // Show the user code in a message
+        const message = `Sign in to Auth0 with the following code: ${userCode}`;
+        const messageItem = await window.showInformationMessage(
+          message,
+          "Copy Code"
+        );
+
+        if (messageItem === "Copy Code") {
+          await env.clipboard.writeText(userCode!);
+        }
+
         // Open the verification URL
         await env.openExternal(
-          Uri.parse(registerDeviceResponse.verificationUriComplete)
+          Uri.parse(registerDeviceResponse.verificationUri)
         );
 
         try {

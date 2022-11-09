@@ -6,7 +6,7 @@ on:
     tags:
       - v*.*.*
 jobs:
-  build-deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -24,6 +24,17 @@ jobs:
           name: commit-extension-${{ env.VERSION }}
           path: ./*.vsix
 
+  # Create a release with the version number
+  deploy:
+    needs: build-deploy
+    runs-on: ubuntu-latest
+    steps:
+      # Download the VSIX file from the artifact
+      - uses: actions/download-artifact@v2
+        with:
+          name: commit-extension-${{ env.VERSION }}
+          path: ./
+      
       # Upload the VSIX file to the Github release
       - name: Create Release
         uses: softprops/action-gh-release@v1

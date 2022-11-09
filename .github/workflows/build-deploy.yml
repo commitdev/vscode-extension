@@ -24,3 +24,10 @@ jobs:
         with:
           name: commit-extension-${{ env.VERSION }}
           path: ./*.vsix
+
+      # Upload the VSIX file to the Github release
+      - uses: softprops/action-gh-release@v1
+        with:
+          files: ./*.vsix
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

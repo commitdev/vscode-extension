@@ -10,7 +10,7 @@
   },
   "displayName": "Commit Extension",
   "description": "Allow developers to log work on Commit Projects as Latest Updates",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.73.0"
   },
@@ -19,7 +19,8 @@
   ],
   "activationEvents": [
     "onStartupFinished",
-    "onCommand:commit-extension.addProjectUpdates"
+    "onCommand:commit-extension.addProjectUpdates",
+    "onCommand:commit-extension.viewProjects"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -27,6 +28,10 @@
       {
         "command": "commit-extension.addProjectUpdates",
         "title": "Commit: Add Project Updates"
+      },
+      {
+        "command": "commit-extension.viewProjects",
+        "title": "Commit: View Projects"
       }
     ]
   },

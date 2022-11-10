@@ -1,22 +1,21 @@
 import {
   ApolloClient,
   createHttpLink,
+  DefaultOptions,
   InMemoryCache,
 } from "@apollo/client/core";
 import { setContext } from "@apollo/client/link/context";
+import * as fs from "fs";
 import fetch from "node-fetch";
 import * as vscode from "vscode";
 import { API, Project } from "./api";
 import { Auth0AuthenticationProvider, AUTH_TYPE } from "./auth0AuthProvider";
+import path = require("path");
 
 const COMMIT_GRAPHQL_API_URL = "https://api.commit-staging.dev/graphql";
 const COMMIT_API_BASE_URL = "https://app.commit-staging.dev/";
 
 export async function activate(context: vscode.ExtensionContext) {
-  console.log(
-    'Congratulations, your extension "Commit Extension" is now active!'
-  );
-
   const subscriptions = context.subscriptions;
 
   subscriptions.push(new Auth0AuthenticationProvider(context));
@@ -50,9 +49,22 @@ export async function activate(context: vscode.ExtensionContext) {
     };
   });
 
+  // default options for the apollo client
+  const defaultOptions: DefaultOptions = {
+    watchQuery: {
+      fetchPolicy: "no-cache",
+      errorPolicy: "ignore",
+    },
+    query: {
+      fetchPolicy: "no-cache",
+      errorPolicy: "all",
+    },
+  };
+
   const client = new ApolloClient({
     link: authLink.concat(link),
     cache: new InMemoryCache(),
+    defaultOptions,
   });
 
   const api = new API(client);
@@ -116,7 +128,72 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   subscriptions.push(addProjectUpdateDisposable);
+
+  // Register a Webview
+  let webviewDisposable = vscode.commands.registerCommand(
+    "commit-extension.viewProjects",
+    async () => {
+      const panel = vscode.window.createWebviewPanel(
+        "commitExtension", // Identifies the type of the webview. Used internally
+        "Commit Projects", // Title
+        vscode.ViewColumn.One,
+        {
+          enableScripts: true, // Enable javascript in the webview
+        }
+      );
+
+      // Send message to webview
+      const sendMessage = (type: string, message: any) => {
+        panel.webview.postMessage({
+          command: type,
+          data: message,
+        });
+      };
+
+      // Handle messages from the webview
+      panel.webview.onDidReceiveMessage(
+        async (message) => {
+          switch (message.command) {
+            case "updateProjects":
+              try {
+                const projects = await api.getUserProjects();
+                sendMessage("projects", JSON.stringify(projects));
+
+                // Show the success message
+                vscode.window.showInformationMessage("Projects Updated");
+              } catch (error: any) {
+                vscode.window.showErrorMessage(error.message);
+              }
+              break;
+            case "showMessage":
+              vscode.window.showInformationMessage(message.data);
+              break;
+          }
+        },
+        undefined,
+        context.subscriptions
+      );
+
+      // Set the webview's content using vsocde-resource URI
+      panel.webview.html = getWebviewContent(context);
+
+      // sendMessage("update", JSON.stringify(await api.getUserProjects()));
+    }
+  );
+
+  subscriptions.push(webviewDisposable);
 }
+
+const getWebviewContent = (context: vscode.ExtensionContext) => {
+  // Read the HTML file
+  const htmlPath = vscode.Uri.file(
+    path.join(context.extensionPath, "src", "webview", "index.html")
+  );
+
+  const html = htmlPath.with({ scheme: "vscode-resource" });
+
+  return fs.readFileSync(html.fsPath, "utf8");
+};
 
 const getAuth0Sessions = async () => {
   const session = await vscode.authentication.getSession(AUTH_TYPE, [], {
@@ -134,5 +211,5 @@ const getAuth0Sessions = async () => {
 
 // This method is called when your extension is deactivated
 export function deactivate() {
-  console.log("Commit Extension deactivated");
+  // Remove the AUTH_TYPE session
 }

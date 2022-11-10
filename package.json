@@ -57,6 +57,7 @@
     "@vscode/test-electron": "^2.2.0",
     "eslint": "^8.26.0",
     "glob": "^8.0.3",
+    "html-loader": "^4.2.0",
     "mocha": "^10.1.0",
     "ts-loader": "^9.4.1",
     "typescript": "^4.8.4",

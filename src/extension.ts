@@ -187,7 +187,7 @@ export async function activate(context: vscode.ExtensionContext) {
 const getWebviewContent = (context: vscode.ExtensionContext) => {
   // Read the HTML file
   const htmlPath = vscode.Uri.file(
-    path.join(context.extensionPath, "src", "webview", "index.html")
+    path.join(context.asAbsolutePath("static"), "webview", "index.html")
   );
 
   const html = htmlPath.with({ scheme: "vscode-resource" });

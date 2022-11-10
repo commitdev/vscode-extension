@@ -47,8 +47,16 @@ Following are the known issues with the extension:
 ## Feature Roadmap
 Following are the features that are planned to be added in the future:
 
-- Add ability to link single project to given workspace.
-- Add ability to make other updats such as adding a new project, adding a comment, etc.
-- Update Project View to replicate information from Commit Porject page.
-- Add ability to connect Github repository to the project, in order to pull information from Github repo such as code type, language, etc.
+- Add ability to link single Git Project to given workspace.
+- Add ability to make other updates such as adding a new project, adding a comment, etc.
+- Update Project View to replicate information from Commit Project page.
+- Add ability to connect Github repository to the project, in order to pull information from Github repo such as code type, language, code precentage etc.
 
+
+## Resources
+
+- [Git API](https://github.com/microsoft/vscode/tree/main/extensions/git)
+- [VS Code Extension API](https://code.visualstudio.com/api)
+- [VS Code Webview API](https://code.visualstudio.com/api/extension-guides/webview)
+- [Commit GraphQL API](https://app.commit.dev/api/graphql)
+- [VS Code Language Server Extension Guide](https://code.visualstudio.com/api/language-extensions/language-server-extension-guide)

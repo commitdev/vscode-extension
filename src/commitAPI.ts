@@ -1,14 +1,7 @@
 import { ApolloClient, gql, NormalizedCacheObject } from "@apollo/client/core";
 import * as vscode from "vscode";
-const COMMIT_GRAPHQL_API_URL = "https://api.commit-staging.dev/graphql";
-const COMMIT_API_BASE_URL = "https://app.commit-staging.dev/";
 
-export type Project = {
-  id: string;
-  title: string;
-};
-
-export class API {
+export class CommitAPI {
   private apolloClient: ApolloClient<NormalizedCacheObject>;
   private userCommitSession: vscode.AuthenticationSession | null;
 

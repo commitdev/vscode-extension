@@ -5,34 +5,83 @@ import {
   InMemoryCache,
 } from "@apollo/client/core";
 import { setContext } from "@apollo/client/link/context";
-import * as fs from "fs";
 import fetch from "node-fetch";
 import * as vscode from "vscode";
-import { API, Project } from "./api";
 import { Auth0AuthenticationProvider, AUTH_TYPE } from "./auth0AuthProvider";
-import path = require("path");
+import addProjectCommentCommand from "./commands/commit/addProjectsUpdate";
+import viewProjectsCommand from "./commands/commit/viewProjects";
+import { CommitAPI } from "./commitAPI";
+import {
+  COMMIT_API_BASE_URL,
+  COMMIT_GRAPHQL_API_URL,
+} from "./common/constants";
+import { getCommitApolloClient, registerCommand } from "./utils";
 
-const COMMIT_GRAPHQL_API_URL = "https://api.commit-staging.dev/graphql";
-const COMMIT_API_BASE_URL = "https://app.commit-staging.dev/";
-
-export async function activate(context: vscode.ExtensionContext) {
+export async function activate(this: any, context: vscode.ExtensionContext) {
   const subscriptions = context.subscriptions;
 
   subscriptions.push(new Auth0AuthenticationProvider(context));
 
-  let session = (await getAuth0Sessions()) as vscode.AuthenticationSession;
+  let commitSession =
+    (await getCommitSessions()) as vscode.AuthenticationSession;
 
+  // Create global state for commit session
+  context.globalState.update("commitSession", commitSession);
+
+  // Check is global state has commitAPI already initialized
+  if (!context.globalState.get<CommitAPI>("commitAPI")) {
+    const commitSession =
+      context.globalState.get<vscode.AuthenticationSession>("commitSession");
+
+    if (!commitSession) {
+      return;
+    }
+
+    const commitApolloClient = await getCommitApolloClient(commitSession);
+
+    // Create commitAPI instance
+    const commitAPI = new CommitAPI(commitApolloClient);
+
+    // Set commit session to commitAPI
+    commitAPI.setUserSession(commitSession);
+
+    // Add the commitAPI to the global state
+    context.globalState.update("commitAPI", commitAPI);
+  }
+
+  // Register a command to add comment to Commit Projects
+  subscriptions.push(registerCommand(addProjectCommentCommand(context)));
+  // Register a command to view Commit Projects in a WebView
+  subscriptions.push(registerCommand(viewProjectsCommand(context)));
+  // Register subscription to update commit session
   subscriptions.push(
     vscode.authentication.onDidChangeSessions(async (e) => {
-      session = (await getAuth0Sessions()) as vscode.AuthenticationSession;
-      if (api) {
-        api.setUserSession(session);
-        console.log("set user session");
+      commitSession =
+        (await getCommitSessions()) as vscode.AuthenticationSession;
+
+      // Update global state for commit session
+      context.globalState.update("commitSession", commitSession);
+
+      // Check if commitAPI is already initialized in global state
+      const commitAPI = context.globalState.get<CommitAPI>("commitAPI");
+
+      if (commitAPI) {
+        commitAPI.setUserSession(commitSession);
       }
     })
   );
+}
 
-  // Setup the API object
+// Initialize Commit API
+const _initCommitAPI = async (context: vscode.ExtensionContext) => {
+  // Get commit session from global state
+  const commitSession =
+    context.globalState.get<vscode.AuthenticationSession>("commitSession");
+
+  if (!commitSession) {
+    return;
+  }
+
   const link = createHttpLink({
     uri: COMMIT_GRAPHQL_API_URL,
     fetch,
@@ -42,7 +91,7 @@ export async function activate(context: vscode.ExtensionContext) {
     return {
       headers: {
         ...headers,
-        Cookie: `helix_session_token=${session.accessToken}`,
+        cookie: `helix_session_token=${commitSession.accessToken}`,
         origin: COMMIT_API_BASE_URL,
         referer: COMMIT_API_BASE_URL,
       },
@@ -67,135 +116,17 @@ export async function activate(context: vscode.ExtensionContext) {
     defaultOptions,
   });
 
-  const api = new API(client);
-  api.setUserSession(session);
+  // Create commitAPI instance
+  const commitAPI = new CommitAPI(client);
 
-  // Register a command
-  let addProjectUpdateDisposable = vscode.commands.registerCommand(
-    "commit-extension.addProjectUpdates",
-    async () => {
-      let projects: Project[] = [];
-      try {
-        projects = await api.getUserProjects();
-      } catch (error: any) {
-        vscode.window.showErrorMessage(error.message);
-        return;
-      }
+  // Set commit session to commitAPI
+  commitAPI.setUserSession(commitSession);
 
-      if (!projects) {
-        vscode.window.showInformationMessage("No projects found");
-        return;
-      }
-
-      // Show list of projects and get the selection
-      const selectedProjectTitle = await vscode.window.showQuickPick(
-        projects.map((project: Project) => project.title),
-        {
-          placeHolder: "Select a project",
-        }
-      );
-
-      if (!selectedProjectTitle) {
-        return;
-      }
-
-      // Get the Project Object
-      const selectedProject = projects.find(
-        (project: { title: string }) => project.title === selectedProjectTitle
-      );
-
-      // Open TextInput dialog
-      vscode.window
-        .showInputBox({
-          prompt: "Enter the update you want to add",
-          placeHolder: "Implementing new feature ...",
-        })
-        .then((value) => {
-          if (value) {
-            try {
-              api.updateProject(selectedProject!.id, value);
-
-              vscode.window.showInformationMessage("Update added successfully");
-            } catch (e) {
-              console.log(e);
-
-              // Show the error message
-              vscode.window.showErrorMessage("Unable to add update");
-            }
-          }
-        });
-    }
-  );
-
-  subscriptions.push(addProjectUpdateDisposable);
-
-  // Register a Webview
-  let webviewDisposable = vscode.commands.registerCommand(
-    "commit-extension.viewProjects",
-    async () => {
-      const panel = vscode.window.createWebviewPanel(
-        "commitExtension", // Identifies the type of the webview. Used internally
-        "Commit Projects", // Title
-        vscode.ViewColumn.One,
-        {
-          enableScripts: true, // Enable javascript in the webview
-        }
-      );
-
-      // Send message to webview
-      const sendMessage = (type: string, message: any) => {
-        panel.webview.postMessage({
-          command: type,
-          data: message,
-        });
-      };
-
-      // Handle messages from the webview
-      panel.webview.onDidReceiveMessage(
-        async (message) => {
-          switch (message.command) {
-            case "updateProjects":
-              try {
-                const projects = await api.getUserProjects();
-                sendMessage("projects", JSON.stringify(projects));
-
-                // Show the success message
-                vscode.window.showInformationMessage("Projects Updated");
-              } catch (error: any) {
-                vscode.window.showErrorMessage(error.message);
-              }
-              break;
-            case "showMessage":
-              vscode.window.showInformationMessage(message.data);
-              break;
-          }
-        },
-        undefined,
-        context.subscriptions
-      );
-
-      // Set the webview's content using vsocde-resource URI
-      panel.webview.html = getWebviewContent(context);
-
-      // sendMessage("update", JSON.stringify(await api.getUserProjects()));
-    }
-  );
-
-  subscriptions.push(webviewDisposable);
-}
-
-const getWebviewContent = (context: vscode.ExtensionContext) => {
-  // Read the HTML file
-  const htmlPath = vscode.Uri.file(
-    path.join(context.asAbsolutePath("static"), "webview", "index.html")
-  );
-
-  const html = htmlPath.with({ scheme: "vscode-resource" });
-
-  return fs.readFileSync(html.fsPath, "utf8");
+  // Add the commitAPI to the global state
+  context.globalState.update("commitAPI", commitAPI);
 };
 
-const getAuth0Sessions = async () => {
+const getCommitSessions = async () => {
   const session = await vscode.authentication.getSession(AUTH_TYPE, [], {
     createIfNone: false,
   });
@@ -211,5 +142,5 @@ const getAuth0Sessions = async () => {
 
 // This method is called when your extension is deactivated
 export function deactivate() {
-  // Remove the AUTH_TYPE session
+  // Get extension context
 }

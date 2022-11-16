@@ -11,29 +11,18 @@ import {
   ExtensionContext,
   ProgressLocation,
   Uri,
-  UriHandler,
   window,
 } from "vscode";
+import {
+  COMMIT_API_BASE_URL,
+  COMMIT_APP_BASE_URL,
+  COMMIT_AUTH0_DOMAIN,
+  COMMIT_CLIENT_ID,
+} from "./common/constants";
 
 export const AUTH_TYPE = `auth0`;
 const AUTH_NAME = `Commit`;
-const CLIENT_ID = "6UcJAI6tXW6leADCdqsGqo5Aoo4fL5C8";
-const AUTH0_DOMAIN = "https://commit-staging.us.auth0.com";
-const COMMIT_API_BASE_URL = "https://api.commit-staging.dev";
-const COMMIT_APP_BASE_URL = "https://app.commit-staging.dev";
 const SESSIONS_SECRET_KEY = `${AUTH_TYPE}.sessions`;
-
-class UriEventHandler extends EventEmitter<Uri> implements UriHandler {
-  public handleUri(uri: Uri) {
-    this.fire(uri);
-  }
-}
-
-type UserInfo = {
-  email: string;
-  id: string;
-  name: string;
-};
 
 export class Auth0AuthenticationProvider
   implements AuthenticationProvider, Disposable
@@ -42,7 +31,6 @@ export class Auth0AuthenticationProvider
     new EventEmitter<AuthenticationProviderAuthenticationSessionsChangeEvent>();
   private _disposable: Disposable;
   private _pendingStates: string[] = [];
-  private _uriHandler = new UriEventHandler();
 
   constructor(private readonly context: ExtensionContext) {
     this._disposable = Disposable.from(
@@ -53,7 +41,6 @@ export class Auth0AuthenticationProvider
         { supportsMultipleAccounts: false }
       )
     );
-    window.registerUriHandler(this._uriHandler);
   }
 
   get onDidChangeSessions() {
@@ -84,6 +71,16 @@ export class Auth0AuthenticationProvider
    */
   public async createSession(scopes: string[]): Promise<AuthenticationSession> {
     try {
+      // Append the default scopes if does not include openid and email
+
+      if (!scopes.includes("openid")) {
+        scopes.push("openid");
+      }
+
+      if (!scopes.includes("email")) {
+        scopes.push("email");
+      }
+
       const token = await this._login(scopes);
       if (!token) {
         throw new Error(`Auth0 login failure`);
@@ -98,7 +95,7 @@ export class Auth0AuthenticationProvider
           label: userInfo.name,
           id: userInfo.id,
         },
-        scopes: [],
+        scopes: scopes,
       };
 
       await this.context.secrets.store(
@@ -114,7 +111,7 @@ export class Auth0AuthenticationProvider
 
       return session;
     } catch (e) {
-      window.showErrorMessage(`Sign in failed: ${e}`);
+      window.showErrorMessage(`${e}`);
       throw e;
     }
   }
@@ -155,29 +152,34 @@ export class Auth0AuthenticationProvider
    */
   private async _getUserInfo(token: string): Promise<UserInfo> {
     // Make POST request to get user info
-    const response = await fetch(
-      `${COMMIT_API_BASE_URL}/v1/auth.get-own-user`,
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          cookie: `helix_session_token=${token}`,
-          origin: COMMIT_APP_BASE_URL,
-          referer: COMMIT_APP_BASE_URL,
-        },
+    try {
+      const response = await fetch(
+        `${COMMIT_API_BASE_URL}/v1/auth.get-own-user`,
+        {
+          method: "POST",
+          headers: {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            "content-type": "application/json",
+            cookie: `helix_session_token=${token}`,
+            origin: COMMIT_APP_BASE_URL || "",
+            referer: COMMIT_APP_BASE_URL || "",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Get user info invalid status: ${response.statusText}`);
       }
-    );
 
-    if (!response.ok) {
-      throw new Error(`Get user info failed: ${response.statusText}`);
+      const data = (await response.json()) as any;
+      return {
+        email: data.email,
+        id: data.id,
+        name: data.name,
+      };
+    } catch (e) {
+      throw new Error(`Get user info failed: ${e}`);
     }
-
-    const data = (await response.json()) as any;
-    return {
-      email: data.email,
-      id: data.id,
-      name: data.name,
-    };
   }
 
   /**
@@ -191,34 +193,41 @@ export class Auth0AuthenticationProvider
     expiresIn: number;
     interval: number;
   }> {
-    const response = await fetch(`${AUTH0_DOMAIN}/oauth/device/code`, {
-      method: "POST",
-      headers: {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        client_id: CLIENT_ID,
-        scope: scopes.join(" "),
-      }),
-    });
+    try {
+      const response = await fetch(`${COMMIT_AUTH0_DOMAIN}/oauth/device/code`, {
+        method: "POST",
+        headers: {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          client_id: COMMIT_CLIENT_ID || "",
+          scope: scopes.join(" "),
+        }),
+      });
 
-    if (!response.ok) {
-      throw new Error(
-        `Auth0 device code registration failed: ${response.statusText}`
-      );
+      if (!response.ok) {
+        console.error(
+          `Device code invalid status: ${response.statusText} ${response.status}`
+        );
+        throw new Error(`Device Registration Failed`);
+      }
+
+      // Parse the response with underscored keys to camelCase
+      const resposeData = (await response.json()) as any;
+      return {
+        userCode: resposeData.user_code,
+        deviceCode: resposeData.device_code,
+        verificationUri: resposeData.verification_uri,
+        verificationUriComplete: resposeData.verification_uri_complete,
+        expiresIn: resposeData.expires_in,
+        interval: resposeData.interval,
+      };
+    } catch (e) {
+      console.error(e);
+      throw new Error(`Unable to get Device Code`);
     }
-
-    // Parse the response with underscored keys to camelCase
-    const resposeData = (await response.json()) as any;
-    return {
-      userCode: resposeData.user_code,
-      deviceCode: resposeData.device_code,
-      verificationUri: resposeData.verification_uri,
-      verificationUriComplete: resposeData.verification_uri_complete,
-      expiresIn: resposeData.expires_in,
-      interval: resposeData.interval,
-    };
   }
 
   /**
@@ -236,15 +245,6 @@ export class Auth0AuthenticationProvider
 
         this._pendingStates.push(stateId);
 
-        // Add the scopes to the query params
-        if (!scopes.includes("openid")) {
-          scopes.push("openid");
-        }
-
-        if (!scopes.includes("email")) {
-          scopes.push("email");
-        }
-
         // Get the device Code from Auth0
         const registerDeviceResponse = await this._registerDeviceCode(scopes);
         const endTime = Date.now() + registerDeviceResponse.expiresIn * 1000;
@@ -256,19 +256,13 @@ export class Auth0AuthenticationProvider
           )?.[1];
 
         // Show the user code in a message
-        const message = `Sign in to Auth0 with the following code: ${userCode}`;
-        const messageItem = await window.showInformationMessage(
-          message,
-          "Copy Code"
+        window.showInformationMessage(
+          `Confirm Device Code: ${userCode} in your browser`
         );
-
-        if (messageItem === "Copy Code") {
-          await env.clipboard.writeText(userCode!);
-        }
 
         // Open the verification URL
         await env.openExternal(
-          Uri.parse(registerDeviceResponse.verificationUri)
+          Uri.parse(registerDeviceResponse.verificationUriComplete)
         );
 
         try {
@@ -303,7 +297,7 @@ export class Auth0AuthenticationProvider
   ): Promise<string> {
     const nowTime = Date.now() * 1000;
     while (nowTime > endTime) {
-      const response = await fetch(`${AUTH0_DOMAIN}/oauth/token`, {
+      const response = await fetch(`${COMMIT_AUTH0_DOMAIN}/oauth/token`, {
         method: "POST",
         headers: {
           // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -311,19 +305,14 @@ export class Auth0AuthenticationProvider
         },
         body: new URLSearchParams({
           grant_type: "urn:ietf:params:oauth:grant-type:device_code",
-          client_id: CLIENT_ID,
+          client_id: COMMIT_CLIENT_ID || "",
           device_code: deviceCode,
         }),
       });
 
       if (response.ok) {
-        const { id_token } = (await response.json()) as {
-          access_token: string;
-          id_token: string;
-          scope: string;
-          expires_in: number;
-          token_type: string;
-        };
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const { id_token } = (await response.json()) as PollAccessTokenResponse;
         return id_token;
       }
 

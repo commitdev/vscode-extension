@@ -61,7 +61,7 @@ export class Auth0AuthenticationProvider
       return [];
     }
 
-    return JSON.parse(allSessions);
+    return JSON.parse(allSessions) as AuthenticationSession[];
   }
 
   /**
@@ -304,8 +304,11 @@ export class Auth0AuthenticationProvider
           "Content-Type": "application/x-www-form-urlencoded",
         },
         body: new URLSearchParams({
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           client_id: COMMIT_CLIENT_ID || "",
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           device_code: deviceCode,
         }),
       });

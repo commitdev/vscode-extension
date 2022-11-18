@@ -1,5 +1,12 @@
 import { ApolloClient, gql, NormalizedCacheObject } from "@apollo/client/core";
+
 import * as vscode from "vscode";
+
+// Enums of subscription types
+export enum SubscriptionType {
+  PROJECT_COMMENT = "Project Comments",
+  PROJECT_UPDATE = "Project Updates",
+}
 
 export class CommitAPI {
   private apolloClient: ApolloClient<NormalizedCacheObject>;
@@ -13,6 +20,8 @@ export class CommitAPI {
   public setUserSession(userCommitSession: vscode.AuthenticationSession) {
     this.userCommitSession = userCommitSession;
   }
+
+  public async subscribeToEvent(eventType: SubscriptionType) {}
 
   public async updateProject(
     projectId: string,
@@ -50,17 +59,16 @@ export class CommitAPI {
     try {
       const { data } = await this.apolloClient.query({
         query: gql`
-        query {
-          projects (creatorUserId: "${this.userCommitSession.account.id}") {
-            items {
-              id,
-              title
+            query {
+              projects (creatorUserId: "${this.userCommitSession.account.id}") {
+                items {
+                  id,
+                  title
+                }
+              }
             }
-          }
-        }
-      `,
+          `,
       });
-
       if (!data) {
         throw new Error("Unable to get projects");
       }
@@ -74,7 +82,7 @@ export class CommitAPI {
           id: project.id,
           title: project.title,
         };
-      });
+      }) as any;
     } catch (error) {
       console.log(error);
       throw new Error("Error getting projects");

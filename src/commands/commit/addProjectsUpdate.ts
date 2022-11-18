@@ -7,36 +7,41 @@ const addProjectCommentCommand = (
   return {
     command: "commit-extension.addProjectUpdates",
     callback: async () => {
+      // Get the project from workspace state
+      let selectedProject =
+        context.workspaceState.get<Project>("connectedProject");
       const commitAPI = context.globalState.get("commitAPI") as CommitAPI;
-      let projects: Project[] = [];
-      try {
-        projects = await commitAPI.getUserProjects();
-      } catch (error: any) {
-        vscode.window.showErrorMessage(error.message);
-        return;
-      }
-
-      if (!projects) {
-        vscode.window.showInformationMessage("No projects found");
-        return;
-      }
-
-      // Show list of projects and get the selection
-      const selectedProjectTitle = await vscode.window.showQuickPick(
-        projects.map((project: Project) => project.title),
-        {
-          placeHolder: "Select a project",
+      if (!selectedProject) {
+        let projects: Project[] = [];
+        try {
+          projects = await commitAPI.getUserProjects();
+        } catch (error: any) {
+          vscode.window.showErrorMessage(error.message);
+          return;
         }
-      );
 
-      if (!selectedProjectTitle) {
-        return;
+        if (!projects) {
+          vscode.window.showInformationMessage("No projects found");
+          return;
+        }
+
+        // Show list of projects and get the selection
+        const selectedProjectTitle = await vscode.window.showQuickPick(
+          projects.map((project: Project) => project.title),
+          {
+            placeHolder: "Select a project",
+          }
+        );
+
+        if (!selectedProjectTitle) {
+          return;
+        }
+
+        // Get the Project Object
+        selectedProject = projects.find(
+          (project: { title: string }) => project.title === selectedProjectTitle
+        );
       }
-
-      // Get the Project Object
-      const selectedProject = projects.find(
-        (project: { title: string }) => project.title === selectedProjectTitle
-      );
 
       // Open TextInput dialog
       vscode.window

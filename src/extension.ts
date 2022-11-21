@@ -1,31 +1,33 @@
 import * as vscode from "vscode";
 import { Auth0AuthenticationProvider, AUTH_TYPE } from "./auth0AuthProvider";
-import addProjectCommentCommand from "./commands/commit/addProjectsUpdate";
+import addProjectComment from "./commands/commit/addProjectsUpdate";
 import connectProject from "./commands/commit/connectProejct";
 import addSubscriptions from "./commands/commit/subscriptions";
-import viewProjectsCommand from "./commands/commit/viewProjects";
+import viewProjects from "./commands/commit/viewProjects";
 import { CommitAPI } from "./commitAPI";
 import { getCommitApolloClient, registerCommand } from "./utils";
 import path = require("path");
 
 export async function activate(this: any, context: vscode.ExtensionContext) {
-  const subscriptions = context.subscriptions;
+  // Register the authentication provider
+  context.subscriptions.push(new Auth0AuthenticationProvider(context));
 
-  subscriptions.push(new Auth0AuthenticationProvider(context));
-
+  // Get Commit Session
   await getCommitSessions();
 
-  // Register a command to add comment to Commit Projects
-  subscriptions.push(registerCommand(addProjectCommentCommand(context)));
-  // Register a command to view Commit Projects in a WebView
-  subscriptions.push(registerCommand(viewProjectsCommand(context)));
-  // Register Subscription command
-  subscriptions.push(registerCommand(addSubscriptions(context)));
-  // Register a command to connect a project to Commit
-  subscriptions.push(registerCommand(connectProject(context)));
+  // Array of commands
+  const commands = [
+    addProjectComment,
+    connectProject,
+    addSubscriptions,
+    viewProjects,
+  ];
+
+  // Register all the commands
+  commands.forEach((command) => registerCommand(command(context)));
 
   // Register subscription to update commit session
-  subscriptions.push(
+  context.subscriptions.push(
     vscode.authentication.onDidChangeSessions(async (e) => {
       if (e.provider.id === AUTH_TYPE) {
         await handleSessionChange(context);

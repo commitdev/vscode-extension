@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { CommitAPI } from "../../commitAPI";
 
-const addProjectCommentCommand = (
+const addProjectComment = (
   context: vscode.ExtensionContext
 ): RegisterCommand => {
   return {
@@ -10,6 +10,12 @@ const addProjectCommentCommand = (
       // Get the project from workspace state
       let selectedProject =
         context.workspaceState.get<Project>("connectedProject");
+
+      // If project is not connected
+      if (!selectedProject) {
+        vscode.window.showErrorMessage("Please connect a project first");
+        return;
+      }
       const commitAPI = context.globalState.get("commitAPI") as CommitAPI;
       if (!selectedProject) {
         let projects: Project[] = [];
@@ -67,4 +73,4 @@ const addProjectCommentCommand = (
   };
 };
 
-export default addProjectCommentCommand;
+export default addProjectComment;

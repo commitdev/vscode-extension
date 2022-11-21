@@ -19,6 +19,24 @@ const addSubscriptions = (
       if (!subscriptionType) {
         return;
       }
+
+      // Based on the subscription type
+      switch (subscriptionType) {
+        case SubscriptionType.PROJECT_COMMENT:
+          // TODO: Add project comment subscription
+          // Show success message
+          vscode.window.showInformationMessage(
+            "Subscribed to project comment updates"
+          );
+          break;
+        case SubscriptionType.PROJECT_UPDATE:
+          // TODO: Add project updates subscription
+          // Show success message
+          vscode.window.showInformationMessage("Subscribed to project updates");
+          break;
+        default:
+          break;
+      }
     },
   };
 };

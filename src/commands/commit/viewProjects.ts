@@ -3,7 +3,7 @@ import * as fs from "fs";
 import * as vscode from "vscode";
 import { CommitAPI } from "../../commitAPI";
 
-const viewProjectsCommand = (context: vscode.ExtensionContext) => {
+const viewProjects = (context: vscode.ExtensionContext) => {
   return {
     command: "commit-extension.viewProjects",
     callback: async () => {
@@ -66,4 +66,4 @@ const getWebviewContent = (context: vscode.ExtensionContext) => {
   return fs.readFileSync(html.fsPath, "utf8");
 };
 
-export default viewProjectsCommand;
+export default viewProjects;

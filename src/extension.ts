@@ -1,19 +1,31 @@
 import * as vscode from "vscode";
-import { Auth0AuthenticationProvider, AUTH_TYPE } from "./auth0AuthProvider";
+import {
+  Auth0AuthenticationProvider,
+  AUTH_TYPE as AUTH0_AUTH_TYPE,
+} from "./authProviders/auth0AuthProvider";
+import GitHubAuthProvider, {
+  AUTH_TYPE as GITHUB_AUTH_TYPE,
+} from "./authProviders/githubAuthProvider";
 import addProjectComment from "./commands/commit/addProjectsUpdate";
+import connectGithubAccount from "./commands/commit/connectGithubAccount";
 import connectProject from "./commands/commit/connectProejct";
 import addSubscriptions from "./commands/commit/subscriptions";
 import viewProjects from "./commands/commit/viewProjects";
 import { CommitAPI } from "./commitAPI";
 import { getCommitApolloClient, registerCommand } from "./utils";
-import path = require("path");
 
 export async function activate(this: any, context: vscode.ExtensionContext) {
   // Register the authentication provider
   context.subscriptions.push(new Auth0AuthenticationProvider(context));
 
+  // Register the commit github app authentication provider
+  context.subscriptions.push(new GitHubAuthProvider(context));
+
   // Get Commit Session
   await getCommitSessions();
+
+  // Get Github Commit Session
+  await getGithubCommitSessions();
 
   // Array of commands
   const commands = [
@@ -21,6 +33,7 @@ export async function activate(this: any, context: vscode.ExtensionContext) {
     connectProject,
     addSubscriptions,
     viewProjects,
+    connectGithubAccount,
   ];
 
   // Register all the commands
@@ -29,14 +42,20 @@ export async function activate(this: any, context: vscode.ExtensionContext) {
   // Register subscription to update commit session
   context.subscriptions.push(
     vscode.authentication.onDidChangeSessions(async (e) => {
-      if (e.provider.id === AUTH_TYPE) {
-        await handleSessionChange(context);
+      if (e.provider.id === AUTH0_AUTH_TYPE) {
+        await handleAuth0SessionChange(context);
+      } else if (e.provider.id === GITHUB_AUTH_TYPE) {
+        await handleGithubSessionChange(context);
       }
     })
   );
 }
 
-const handleSessionChange = async (context: vscode.ExtensionContext) => {
+const handleGithubSessionChange = async (context: vscode.ExtensionContext) => {
+  await getGithubCommitSessions();
+};
+
+const handleAuth0SessionChange = async (context: vscode.ExtensionContext) => {
   console.log("Handling Session changed");
   const commitSession = await getCommitSessions();
 
@@ -66,8 +85,22 @@ const handleSessionChange = async (context: vscode.ExtensionContext) => {
   context.globalState.update("commitAPI", commitAPI);
 };
 
+const getGithubCommitSessions = async () => {
+  const session = await vscode.authentication.getSession(GITHUB_AUTH_TYPE, [], {
+    createIfNone: false,
+  });
+
+  if (session) {
+    vscode.window.showInformationMessage(
+      `Welcome ${session.account.label} to Commit!`
+    );
+  }
+
+  return session;
+};
+
 const getCommitSessions = async () => {
-  const session = await vscode.authentication.getSession(AUTH_TYPE, [], {
+  const session = await vscode.authentication.getSession(AUTH0_AUTH_TYPE, [], {
     createIfNone: false,
   });
 

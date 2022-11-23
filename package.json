@@ -22,7 +22,8 @@
     "onCommand:commit-extension.addProjectUpdates",
     "onCommand:commit-extension.viewProjects",
     "onCommand:commit-extension.addSubscriptions",
-    "onCommand:commit-extension.connectProject"
+    "onCommand:commit-extension.connectProject",
+    "onCommand:commit-extension.connectGithubAccount"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -42,6 +43,10 @@
       {
         "command": "commit-extension.connectProject",
         "title": "Commit: Connect to Project to Workspace"
+      },
+      {
+        "command": "commit-extension.connectGithubAccount",
+        "title": "Commit: Connect your Github Account"
       }
     ]
   },

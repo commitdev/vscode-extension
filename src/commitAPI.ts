@@ -3,7 +3,9 @@ import { ApolloClient, gql, NormalizedCacheObject } from "@apollo/client/core";
 import * as vscode from "vscode";
 
 export enum SubscriptionType {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   PROJECT_COMMENT = "Project Comments",
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   PROJECT_UPDATE = "Project Updates",
 }
 

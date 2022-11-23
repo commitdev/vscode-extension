@@ -1,67 +1,49 @@
 import fetch from "node-fetch";
 import { v4 as uuid } from "uuid";
 import {
-  authentication,
-  AuthenticationProvider,
-  AuthenticationProviderAuthenticationSessionsChangeEvent,
   AuthenticationSession,
-  Disposable,
   env,
-  EventEmitter,
-  ExtensionContext,
   ProgressLocation,
   Uri,
   window,
 } from "vscode";
+import { AuthProvider } from "../common/authProviderInterface";
 import {
   COMMIT_API_BASE_URL,
   COMMIT_APP_BASE_URL,
   COMMIT_AUTH0_DOMAIN,
   COMMIT_CLIENT_ID,
-} from "./common/constants";
+} from "../common/constants";
 
-export const AUTH_TYPE = `auth0`;
+export const AUTH_TYPE = `commit-auth0`;
 const AUTH_NAME = `Commit`;
 const SESSIONS_SECRET_KEY = `${AUTH_TYPE}.sessions`;
 
-export class Auth0AuthenticationProvider
-  implements AuthenticationProvider, Disposable
-{
-  private _sessionChangeEmitter =
-    new EventEmitter<AuthenticationProviderAuthenticationSessionsChangeEvent>();
-  private _disposable: Disposable;
+export class Auth0AuthenticationProvider extends AuthProvider {
   private _pendingStates: string[] = [];
 
-  constructor(private readonly context: ExtensionContext) {
-    this._disposable = Disposable.from(
-      authentication.registerAuthenticationProvider(
-        AUTH_TYPE,
-        AUTH_NAME,
-        this,
-        { supportsMultipleAccounts: false }
-      )
-    );
-  }
-
-  get onDidChangeSessions() {
-    return this._sessionChangeEmitter.event;
+  /**
+   * Methid get authentication type
+   * @returns string
+   */
+  getAuthType(): string {
+    return AUTH_TYPE;
   }
 
   /**
-   * Get the existing sessions
-   * @param scopes
-   * @returns
+   * Method to get authentication name
+   * @returns string
    */
-  public async getSessions(
-    scopes?: string[]
-  ): Promise<readonly AuthenticationSession[]> {
-    const allSessions = await this.context.secrets.get(SESSIONS_SECRET_KEY);
+  getAuthName(): string {
+    return AUTH_NAME;
+  }
 
-    if (!allSessions) {
-      return [];
-    }
-
-    return JSON.parse(allSessions) as AuthenticationSession[];
+  /**
+   * Method to get session secret key
+   * @returns string
+   */
+  getSecretKey(): string {
+    return SESSIONS_SECRET_KEY;
   }
 
   /**
@@ -81,16 +63,17 @@ export class Auth0AuthenticationProvider
         scopes.push("email");
       }
 
-      const token = await this._login(scopes);
-      if (!token) {
-        throw new Error(`Auth0 login failure`);
+      const { accessToken, expiresIn } = await this._login(scopes);
+      if (!accessToken) {
+        console.log("Invalid access token");
+        throw new Error(`Commit login failed`);
       }
 
-      const userInfo = await this._getUserInfo(token);
+      const userInfo = await this._getUserInfo(accessToken);
 
       const session: AuthenticationSession = {
         id: uuid(),
-        accessToken: token,
+        accessToken: accessToken,
         account: {
           label: userInfo.name,
           id: userInfo.id,
@@ -98,12 +81,12 @@ export class Auth0AuthenticationProvider
         scopes: scopes,
       };
 
-      await this.context.secrets.store(
+      await this.getContext().secrets.store(
         SESSIONS_SECRET_KEY,
         JSON.stringify([session])
       );
 
-      this._sessionChangeEmitter.fire({
+      this.getOnDidChangeSessions().fire({
         added: [session],
         removed: [],
         changed: [],
@@ -114,34 +97,6 @@ export class Auth0AuthenticationProvider
       window.showErrorMessage(`${e}`);
       throw e;
     }
-  }
-
-  /**
-   * Remove an existing session
-   * @param sessionId
-   */
-  public async removeSession(sessionId: string): Promise<void> {
-    const sessions = await this.getSessions();
-    const session = sessions.find((s) => s.id === sessionId);
-
-    if (!session) {
-      return;
-    }
-
-    await this.context.secrets.delete(SESSIONS_SECRET_KEY);
-
-    this._sessionChangeEmitter.fire({
-      added: [],
-      removed: [session],
-      changed: [],
-    });
-  }
-
-  /**
-   * Dispose the registered services
-   */
-  public async dispose() {
-    this._disposable.dispose();
   }
 
   /**
@@ -234,7 +189,7 @@ export class Auth0AuthenticationProvider
    * Login to Auth0
    */
   private async _login(scopes: string[] = []) {
-    return await window.withProgress<string>(
+    return await window.withProgress<LoginResponse>(
       {
         location: ProgressLocation.Notification,
         title: "Signing in to Commit...",
@@ -267,13 +222,11 @@ export class Auth0AuthenticationProvider
 
         try {
           // Poll Access Token
-          const accessToken = await this._pollAccessToken(
+          return await this._pollAccessToken(
             endTime,
             registerDeviceResponse.deviceCode,
             registerDeviceResponse.interval
           );
-
-          return accessToken;
         } finally {
           this._pendingStates = this._pendingStates.filter(
             (s) => s !== stateId
@@ -294,7 +247,7 @@ export class Auth0AuthenticationProvider
     endTime: number,
     deviceCode: string,
     interval: number
-  ): Promise<string> {
+  ): Promise<LoginResponse> {
     const nowTime = Date.now() * 1000;
     while (nowTime > endTime) {
       const response = await fetch(`${COMMIT_AUTH0_DOMAIN}/oauth/token`, {
@@ -315,8 +268,12 @@ export class Auth0AuthenticationProvider
 
       if (response.ok) {
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        const { id_token } = (await response.json()) as PollAccessTokenResponse;
-        return id_token;
+        const { id_token, expires_in } =
+          (await response.json()) as PollAccessTokenResponse;
+        return {
+          accessToken: id_token,
+          expiresIn: expires_in,
+        } as LoginResponse;
       }
 
       await new Promise((resolve) => setTimeout(resolve, interval * 1000));

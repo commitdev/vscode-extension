@@ -24,3 +24,8 @@ type RegisterCommand = {
   callback: (...args: any[]) => any;
   thisArg?: any;
 };
+
+type LoginResponse = {
+  accessToken: string;
+  expiresIn: number;
+};

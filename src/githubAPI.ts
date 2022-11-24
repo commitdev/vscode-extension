@@ -17,24 +17,28 @@ export default class GituHubAPI {
   }
 
   public async getGithubRepos(): Promise<Repository[] | []> {
-    let userRepositories: Repository[] = [];
-    const accessToken = this.githubSession.accessToken;
+    try {
+      let userRepositories: Repository[] = [];
+      const accessToken = this.githubSession.accessToken;
 
-    // Make a request to Github to get list of repositories
-    const headers = {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      Authorization: `Bearer ${accessToken}`,
-    };
-    const response = await fetch("https://api.github.com/user/repos", {
-      headers: headers,
-    });
+      // Make a request to Github to get list of repositories
+      const headers = {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        Authorization: `Bearer ${accessToken}`,
+      };
+      const response = await fetch("https://api.github.com/user/repos", {
+        headers: headers,
+      });
 
-    if (!response.ok) {
-      throw new Error("Unable to get respositores");
+      if (!response.ok) {
+        throw new Error("Unable to get respositores");
+      }
+
+      return (await response.json()) as Repository[];
+    } catch (error) {
+      console.log(error);
+      throw new Error("Unable to get user repositories");
     }
-
-    const responseJson = (await response.json()) as Repository[];
-    return userRepositories;
   }
 
   public async getUserInfo(): Promise<any> {}

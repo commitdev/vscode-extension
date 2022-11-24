@@ -61,7 +61,7 @@ export class CommitAPI {
    * @param projectId : Project Id to create a comment on
    * @param content : Content of the comment
    */
-  public async updateProject(
+  public async addProjectUpdate(
     projectId: string,
     content: string
   ): Promise<void> {
@@ -107,7 +107,24 @@ export class CommitAPI {
               projects (creatorUserId: "${this.userCommitSession.account.id}") {
                 items {
                   id,
-                  title
+                  title,
+                  problemStatement,
+                  status,
+                  attachments,
+                  content,
+                  participants {
+                    id
+                  },
+                  type,
+                  urls,
+                  organization,
+                  attachments,
+                  tags {
+                    slug
+                  }
+                  creatorUser {
+                    id
+                  }
                 }
               }
             }
@@ -124,12 +141,84 @@ export class CommitAPI {
       return data.projects.items.map((project: Project) => {
         return {
           id: project.id,
+          creatorUser: project.creatorUser,
           title: project.title,
+          urls: project.urls,
+          problemStatement: project.problemStatement,
+          status: project.status,
+          attachments: project.attachments,
+          content: project.content,
+          participants: project.participants,
+          type: project.type,
+          organization: project.organization,
+          tags: project.tags.map((tag) => {
+            return tag.slug;
+          }),
         };
-      }) as any;
-    } catch (error) {
-      console.log(error);
+      }) as [Project];
+    } catch (error: any) {
+      console.log(error.message);
       throw new Error("Error getting projects");
+    }
+  }
+
+  public async updateProject(project: Project): Promise<Project | void> {
+    // Check if user is logged in
+    if (!this.userCommitSession) {
+      throw new Error("You need to login to commit");
+    }
+
+    try {
+      const { data } = await this.apolloClient.mutate({
+        mutation: gql`
+          mutation UpdateProject($id: ID!, $project: UpdateProject!) {
+            updateProject(id: $id, project: $project) {
+              ... on Project {
+                id
+                title
+                content
+                problemStatement
+                status
+                attachments
+                type
+                urls
+                organization
+                tags {
+                  slug
+                }
+                creatorUser {
+                  id
+                }
+              }
+            }
+          }
+        `,
+        variables: {
+          id: project.id,
+          project: {
+            creatorUserId: project.creatorUser.id,
+            title: project.title,
+            content: project.content,
+            problemStatement: project.problemStatement,
+            status: project.status,
+            participantIds: [],
+            tagIds: project.tags,
+            attachments: project.attachments,
+            type: project.type,
+            urls: project.urls,
+            organization: project.organization,
+          },
+        },
+      });
+
+      if (!data) {
+        throw new Error("Unable to update project");
+      }
+
+      return data.updateProject as Project;
+    } catch (error: any) {
+      console.log(error);
+      throw new Error("Error updating project");
     }
   }
 }

@@ -58,7 +58,7 @@ const addProjectComment = (
         .then((value) => {
           if (value) {
             try {
-              commitAPI.updateProject(selectedProject!.id, value);
+              commitAPI.addProjectUpdate(selectedProject!.id, value);
 
               vscode.window.showInformationMessage("Update added successfully");
             } catch (e) {

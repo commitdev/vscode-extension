@@ -27,6 +27,9 @@ export async function activate(this: any, context: vscode.ExtensionContext) {
   // Get Github Commit Session
   await getGithubCommitSessions();
 
+  // Set CommitAPI
+  await getCommitAPI(context);
+
   // Array of commands
   const commands = [
     addProjectComment,
@@ -42,6 +45,8 @@ export async function activate(this: any, context: vscode.ExtensionContext) {
   // Register subscription to update commit session
   context.subscriptions.push(
     vscode.authentication.onDidChangeSessions(async (e) => {
+      // show a notification
+      vscode.window.showInformationMessage(`Session ${e.provider.id} changed`);
       if (e.provider.id === AUTH0_AUTH_TYPE) {
         await handleAuth0SessionChange(context);
       } else if (e.provider.id === GITHUB_AUTH_TYPE) {

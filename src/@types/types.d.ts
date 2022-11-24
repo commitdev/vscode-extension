@@ -1,7 +1,30 @@
 // Custom Types
+// type Project = {
+//   id: string;
+//   title: string;
+//   urls: string[];
+// };
+
 type Project = {
   id: string;
+  creatorUser: {
+    id: string;
+  };
   title: string;
+  content: string;
+  problemStatement: string;
+  status: Object;
+  participants: Object[];
+  tags: [
+    {
+      slug: string;
+    }
+  ];
+  type: Object;
+  projectUpdates: Object[];
+  attachments: string[];
+  urls: string[];
+  organization: string;
 };
 
 // Response types for the GraphQL API

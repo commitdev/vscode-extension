@@ -140,14 +140,7 @@ export class Auth0AuthenticationProvider extends AuthProvider {
   /**
    * Get the device code from Auth0
    */
-  private async _registerDeviceCode(scopes: string[]): Promise<{
-    userCode: string;
-    deviceCode: string;
-    verificationUri: string;
-    verificationUriComplete: string;
-    expiresIn: number;
-    interval: number;
-  }> {
+  private async _registerDeviceCode(scopes: string[]): Promise<UserDeviceCode> {
     try {
       const response = await fetch(`${COMMIT_AUTH0_DOMAIN}/oauth/device/code`, {
         method: "POST",
@@ -170,15 +163,15 @@ export class Auth0AuthenticationProvider extends AuthProvider {
       }
 
       // Parse the response with underscored keys to camelCase
-      const resposeData = (await response.json()) as any;
+      const responseJson = (await response.json()) as any;
       return {
-        userCode: resposeData.user_code,
-        deviceCode: resposeData.device_code,
-        verificationUri: resposeData.verification_uri,
-        verificationUriComplete: resposeData.verification_uri_complete,
-        expiresIn: resposeData.expires_in,
-        interval: resposeData.interval,
-      };
+        deviceCode: responseJson.device_code,
+        expiresIn: responseJson.expires_in,
+        interval: responseJson.interval,
+        userCode: responseJson.user_code,
+        verificationUri: responseJson.verification_uri,
+        verificationUriComplete: responseJson.verification_uri_complete,
+      } as UserDeviceCode;
     } catch (e) {
       console.error(e);
       throw new Error(`Unable to get Device Code`);
@@ -189,7 +182,7 @@ export class Auth0AuthenticationProvider extends AuthProvider {
    * Login to Auth0
    */
   private async _login(scopes: string[] = []) {
-    return await window.withProgress<LoginResponse>(
+    return await window.withProgress<AuthDetails>(
       {
         location: ProgressLocation.Notification,
         title: "Signing in to Commit...",
@@ -247,7 +240,7 @@ export class Auth0AuthenticationProvider extends AuthProvider {
     endTime: number,
     deviceCode: string,
     interval: number
-  ): Promise<LoginResponse> {
+  ): Promise<AuthDetails> {
     const nowTime = Date.now() * 1000;
     while (nowTime > endTime) {
       const response = await fetch(`${COMMIT_AUTH0_DOMAIN}/oauth/token`, {
@@ -269,11 +262,11 @@ export class Auth0AuthenticationProvider extends AuthProvider {
       if (response.ok) {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const { id_token, expires_in } =
-          (await response.json()) as PollAccessTokenResponse;
+          (await response.json()) as CommitPollAccessTokenResponse;
         return {
           accessToken: id_token,
           expiresIn: expires_in,
-        } as LoginResponse;
+        } as AuthDetails;
       }
 
       await new Promise((resolve) => setTimeout(resolve, interval * 1000));

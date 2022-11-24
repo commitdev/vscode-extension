@@ -5,7 +5,7 @@ type Project = {
 };
 
 // Response types for the GraphQL API
-type PollAccessTokenResponse = {
+type CommitPollAccessTokenResponse = {
   access_token: string;
   id_token: string;
   scope: string;
@@ -25,7 +25,25 @@ type RegisterCommand = {
   thisArg?: any;
 };
 
-type LoginResponse = {
+type AuthDetails = {
   accessToken: string;
   expiresIn: number;
+};
+
+type UserDeviceCode = {
+  deviceCode: string;
+  expiresIn: number;
+  interval: number;
+  verificationUri: string;
+  userCode: string;
+  verificationUriComplete: string | "";
+};
+
+type GithuUserInfo = {
+  id: number;
+  login: string;
+  name: string;
+  email: string;
+  avatarUrl: string;
+  url: string;
 };

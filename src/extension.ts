@@ -7,7 +7,7 @@ import GitHubAuthProvider, {
   AUTH_TYPE as GITHUB_AUTH_TYPE,
 } from "./authProviders/githubAuthProvider";
 import addProjectComment from "./commands/commit/addProjectsUpdate";
-import connectGithubAccount from "./commands/commit/connectGithubAccount";
+import connectGithubRepoToCommitProject from "./commands/commit/connectGithubRepoCommitProject";
 import connectProject from "./commands/commit/connectProejct";
 import addSubscriptions from "./commands/commit/subscriptions";
 import viewProjects from "./commands/commit/viewProjects";
@@ -33,7 +33,7 @@ export async function activate(this: any, context: vscode.ExtensionContext) {
     connectProject,
     addSubscriptions,
     viewProjects,
-    connectGithubAccount,
+    connectGithubRepoToCommitProject,
   ];
 
   // Register all the commands
@@ -51,8 +51,27 @@ export async function activate(this: any, context: vscode.ExtensionContext) {
   );
 }
 
+/**
+ * Method to handle change in Github Session needed for Commit Github App
+ * @param context Vscode Extension Context
+ * @returns
+ */
 const handleGithubSessionChange = async (context: vscode.ExtensionContext) => {
-  await getGithubCommitSessions();
+  // Get CommitAPI from workspace state
+  const commitAPI = await getCommitAPI(context);
+
+  if (!commitAPI) {
+    return;
+  }
+
+  // Get Github Commit Session
+  const githubSession = (await getGithubCommitSessions()) || null;
+
+  // Set github session to commitAPI
+  commitAPI.setUserGithubSession(githubSession);
+
+  // Add the commitAPI to the workspace state
+  context.globalState.update("commitAPI", commitAPI);
 };
 
 const handleAuth0SessionChange = async (context: vscode.ExtensionContext) => {
@@ -62,24 +81,14 @@ const handleAuth0SessionChange = async (context: vscode.ExtensionContext) => {
   if (!commitSession) {
     // Remove the project from workspace state
     context.workspaceState.update("connectedProject", undefined);
+
+    // Remove the commitAPI from global state
+    context.globalState.update("commitAPI", undefined);
+
     return;
   }
 
-  // Check if commitAPI is already initialized in workspace state
-  let commitAPI = context.globalState.get<CommitAPI>("commitAPI");
-
-  if (commitAPI) {
-    commitAPI.setUserSession(commitSession);
-    return;
-  }
-
-  const commitApolloClient = await getCommitApolloClient(commitSession);
-
-  // Create commitAPI instance
-  commitAPI = new CommitAPI(commitApolloClient);
-
-  // Set commit session to commitAPI
-  commitAPI.setUserSession(commitSession);
+  const commitAPI = await getCommitAPI(context);
 
   // Add the commitAPI to the workspace state
   context.globalState.update("commitAPI", commitAPI);
@@ -92,7 +101,7 @@ const getGithubCommitSessions = async () => {
 
   if (session) {
     vscode.window.showInformationMessage(
-      `Welcome ${session.account.label} to Commit!`
+      `Welcome ${session.account.label} to Commit Githu App!`
     );
   }
 
@@ -111,6 +120,43 @@ const getCommitSessions = async () => {
   }
 
   return session;
+};
+
+const getCommitAPI = async (
+  context: vscode.ExtensionContext
+): Promise<CommitAPI | undefined> => {
+  // Check if commitAPI is already initialized in workspace state
+  let commitAPI = context.globalState.get<CommitAPI>("commitAPI");
+
+  if (commitAPI) {
+    return commitAPI;
+  }
+
+  // Get Commit Session
+  const commitSession = await getCommitSessions();
+  if (!commitSession) {
+    return;
+  }
+
+  // Get Github Commit Session
+  const githubSession = (await getGithubCommitSessions()) || null;
+
+  // Create Apollo Client
+  const commitApolloClient = await getCommitApolloClient(commitSession);
+
+  // Create commitAPI instance
+  commitAPI = new CommitAPI(commitApolloClient);
+
+  // Set commit session to commitAPI
+  commitAPI.setUserCommitSession(commitSession);
+
+  // Set github session to commitAPI
+  commitAPI.setUserGithubSession(githubSession);
+
+  // Add the commitAPI to the workspace state
+  context.globalState.update("commitAPI", commitAPI);
+
+  return commitAPI;
 };
 
 // This method is called when your extension is deactivated

@@ -86,7 +86,7 @@ export class CommitAPI {
         `,
       });
     } catch (error) {
-      console.log(error);
+      // console.log(error);
       throw new Error("Error updating project");
     }
   }
@@ -157,7 +157,7 @@ export class CommitAPI {
         };
       }) as [Project];
     } catch (error: any) {
-      console.log(error.message);
+      // console.log(error.message);
       throw new Error("Error getting projects");
     }
   }
@@ -217,7 +217,7 @@ export class CommitAPI {
 
       return data.updateProject as Project;
     } catch (error: any) {
-      console.log(error);
+      // console.log(error);
       throw new Error("Error updating project");
     }
   }

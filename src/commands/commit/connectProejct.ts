@@ -5,7 +5,7 @@ const connectProject = (context: vscode.ExtensionContext): RegisterCommand => {
   return {
     command: "commit-extension.connectProject",
     callback: async () => {
-      const commitAPI = context.globalState.get("commitAPI") as CommitAPI;
+      const commitAPI = context.workspaceState.get("commitAPI") as CommitAPI;
       if (!commitAPI) {
         vscode.window.showErrorMessage("Please login to Commit");
         return;

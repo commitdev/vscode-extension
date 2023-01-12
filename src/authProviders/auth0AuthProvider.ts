@@ -65,7 +65,7 @@ export class Auth0AuthenticationProvider extends AuthProvider {
 
       const { accessToken, expiresIn } = await this._login(scopes);
       if (!accessToken) {
-        console.log("Invalid access token");
+        // console.log("Invalid access token");
         throw new Error(`Commit login failed`);
       }
 

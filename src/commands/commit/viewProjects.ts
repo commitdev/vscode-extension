@@ -7,7 +7,7 @@ const viewProjects = (context: vscode.ExtensionContext) => {
   return {
     command: "commit-extension.viewProjects",
     callback: async () => {
-      const commitAPI = context.globalState.get("commitAPI") as CommitAPI;
+      const commitAPI = context.workspaceState.get("commitAPI") as CommitAPI;
       const panel = vscode.window.createWebviewPanel(
         "commitExtension", // Identifies the type of the webview. Used internally
         "Commit Projects", // Title

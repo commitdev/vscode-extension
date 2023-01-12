@@ -16,7 +16,7 @@ const addProjectComment = (
         vscode.window.showErrorMessage("Please connect a project first");
         return;
       }
-      const commitAPI = context.globalState.get("commitAPI") as CommitAPI;
+      const commitAPI = context.workspaceState.get("commitAPI") as CommitAPI;
       if (!selectedProject) {
         let projects: Project[] = [];
         try {
@@ -62,7 +62,7 @@ const addProjectComment = (
 
               vscode.window.showInformationMessage("Update added successfully");
             } catch (e) {
-              console.log(e);
+              // console.log(e);
 
               // Show the error message
               vscode.window.showErrorMessage("Unable to add update");

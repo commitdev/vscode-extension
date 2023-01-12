@@ -72,7 +72,7 @@ export class Auth0AuthenticationProvider extends AuthProvider {
       const userInfo = await this._getUserInfo(accessToken);
 
       const session: AuthenticationSession = {
-        id: uuid(),
+        id: "commit-" + uuid(),
         accessToken: accessToken,
         account: {
           label: userInfo.name,

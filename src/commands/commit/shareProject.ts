@@ -3,9 +3,9 @@ import * as vscode from "vscode";
 import { env } from "vscode";
 import { COMMIT_APP_BASE_URL } from "../../common/constants";
 
-const viewProjects = (context: vscode.ExtensionContext) => {
+const shareProject = (context: vscode.ExtensionContext) => {
   return {
-    command: "commit-extension.viewProjects",
+    command: "commit-extension.shareProject",
     callback: async () => {
       // Open the commit project in browser
       await env.openExternal(
@@ -15,4 +15,4 @@ const viewProjects = (context: vscode.ExtensionContext) => {
   };
 };
 
-export default viewProjects;
+export default shareProject;

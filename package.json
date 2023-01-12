@@ -22,7 +22,8 @@
         "onCommand:commit-extension.addProjectUpdates",
         "onCommand:commit-extension.viewProjects",
         "onCommand:commit-extension.addSubscriptions",
-        "onCommand:commit-extension.connectProject"
+        "onCommand:commit-extension.connectProject",
+        "onCommand:commit-extension.shareProject"
     ],
     "main": "./dist/extension.js",
     "contributes": {
@@ -41,6 +42,10 @@
             {
                 "command": "commit-extension.connectProject",
                 "title": "Commit: Connect to Project to Workspace"
+            },
+            {
+                "command": "commit-extension.shareProject",
+                "title": "Commit: Share a Project"
             }
         ]
     },
@@ -80,6 +85,7 @@
         "cross-fetch": "^3.1.5",
         "graphql": "^16.6.0",
         "graphql-ws": "^5.11.2",
+        "jwt-decode": "^3.1.2",
         "node-fetch": "^3.2.10",
         "uuid": "^9.0.0",
         "ws": "^8.11.0"

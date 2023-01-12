@@ -5,6 +5,7 @@ import {
 } from "./authProviders/auth0AuthProvider";
 import addProjectComment from "./commands/commit/addProjectsUpdate";
 import connectProject from "./commands/commit/connectProejct";
+import shareProject from "./commands/commit/shareProject";
 import addSubscriptions from "./commands/commit/subscriptions";
 import viewProjects from "./commands/commit/viewProjects";
 import { CommitAPI } from "./commitAPI";
@@ -23,6 +24,7 @@ export async function activate(this: any, context: vscode.ExtensionContext) {
     connectProject,
     addSubscriptions,
     viewProjects,
+    shareProject,
   ];
 
   // Register all the commands
@@ -32,7 +34,7 @@ export async function activate(this: any, context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.authentication.onDidChangeSessions(async (e) => {
       if (e.provider.id === AUTH0_AUTH_TYPE) {
-        await handleAuth0SessionChange(context);
+        handleAuth0SessionChange(context);
       }
     })
   );
@@ -61,6 +63,8 @@ const getCommitSessions = async () => {
   const session = await vscode.authentication.getSession(AUTH0_AUTH_TYPE, [], {
     createIfNone: false,
   });
+
+  // decode access token to get expiry time
 
   if (session) {
     vscode.window.showInformationMessage(
@@ -95,9 +99,6 @@ const getCommitAPI = async (
 
   // Set commit session to commitAPI
   commitAPI.setUserCommitSession(commitSession);
-
-  // Add the commitAPI to the workspace state
-  context.workspaceState.update("commitAPI", commitAPI);
 
   return commitAPI;
 };

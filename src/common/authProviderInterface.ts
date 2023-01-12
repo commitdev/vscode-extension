@@ -1,3 +1,4 @@
+import jwt_decode from "jwt-decode";
 import * as vscode from "vscode";
 import {
   AuthenticationProvider,
@@ -103,7 +104,28 @@ export abstract class AuthProvider
       return [];
     }
 
-    return JSON.parse(allSessions) as AuthenticationSession[];
+    // Parse the sessions
+    const sessions = JSON.parse(allSessions) as AuthenticationSession[];
+
+    // if sessions length is greater than 0
+    const validSessions = sessions.filter((session) => {
+      if (!session.id.includes("commit-")) {
+        return false;
+      }
+      // Check is access token is expired
+      const { accessToken } = session;
+      const { exp } = jwt_decode(accessToken) as DecodedToken;
+
+      // If access token is expired, remove the session
+      if (exp < Date.now() / 1000) {
+        this.removeSession(session.id);
+        return;
+      }
+
+      return true;
+    });
+
+    return validSessions;
   }
 
   /**

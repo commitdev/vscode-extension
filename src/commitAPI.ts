@@ -46,10 +46,6 @@ export class CommitAPI {
     return this.userCommitSession;
   }
 
-  public get getUserGithubSession(): vscode.AuthenticationSession | null {
-    return this.userGithuSession;
-  }
-
   /**
    * Method to subscribe to project events
    * @param eventType : Type of event to subscribe to

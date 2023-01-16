@@ -73,3 +73,8 @@ type DecodedToken = {
   email: string;
   email_verified: boolean;
 };
+
+type WebViewMessageSend = {
+  command: string;
+  data: any;
+};

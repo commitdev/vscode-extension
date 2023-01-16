@@ -9,6 +9,7 @@ import {
 import { setContext } from "@apollo/client/link/context";
 import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
 import { getMainDefinition } from "@apollo/client/utilities";
+import * as fs from "fs";
 import { createClient } from "graphql-ws";
 import fetch from "node-fetch";
 import * as vscode from "vscode";
@@ -18,6 +19,7 @@ import {
   COMMIT_GRAPHQL_API_URL,
   COMMIT_GRAPHQL_WS_API_URL,
 } from "./common/constants";
+import path = require("path");
 
 export const registerCommand = (
   registerCommend: RegisterCommand
@@ -93,4 +95,15 @@ export const getCommitApolloClient = async (
     cache: new InMemoryCache(),
     defaultOptions,
   });
+};
+
+export const getWebviewContent = (context: vscode.ExtensionContext) => {
+  // Read the HTML file
+  const htmlPath = vscode.Uri.file(
+    path.join(context.asAbsolutePath("static"), "webview", "index.html")
+  );
+
+  const html = htmlPath.with({ scheme: "vscode-resource" });
+
+  return fs.readFileSync(html.fsPath, "utf8");
 };

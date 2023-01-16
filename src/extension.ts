@@ -6,6 +6,7 @@ import {
 import addProjectComment from "./commands/commit/addProjectsUpdate";
 import connectProject from "./commands/commit/connectProejct";
 import shareProject from "./commands/commit/shareProject";
+import shareProjectUpdate from "./commands/commit/shareProjectUpdate";
 import addSubscriptions from "./commands/commit/subscriptions";
 import viewProjects from "./commands/commit/viewProjects";
 import { CommitAPI } from "./commitAPI";
@@ -25,6 +26,7 @@ export async function activate(this: any, context: vscode.ExtensionContext) {
     addSubscriptions,
     viewProjects,
     shareProject,
+    shareProjectUpdate,
   ];
 
   // Register all the commands
@@ -99,6 +101,9 @@ const getCommitAPI = async (
 
   // Set commit session to commitAPI
   commitAPI.setUserCommitSession(commitSession);
+
+  // Add the commitAPI to the workspace state
+  context.workspaceState.update("commitAPI", commitAPI);
 
   return commitAPI;
 };

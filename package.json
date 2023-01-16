@@ -23,7 +23,8 @@
         "onCommand:commit-extension.viewProjects",
         "onCommand:commit-extension.addSubscriptions",
         "onCommand:commit-extension.connectProject",
-        "onCommand:commit-extension.shareProject"
+        "onCommand:commit-extension.shareProject",
+        "onCommand:commit-extension.shareProjectUpdate"
     ],
     "main": "./dist/extension.js",
     "contributes": {
@@ -46,6 +47,10 @@
             {
                 "command": "commit-extension.shareProject",
                 "title": "Commit: Share a Project"
+            },
+            {
+                "command": "commit-extension.shareProjectUpdate",
+                "title": "Commit: Share Project Updates"
             }
         ]
     },

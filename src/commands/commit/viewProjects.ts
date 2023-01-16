@@ -1,4 +1,3 @@
-import path = require("path");
 import * as vscode from "vscode";
 import { env } from "vscode";
 import { COMMIT_APP_BASE_URL } from "../../common/constants";

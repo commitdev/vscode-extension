@@ -67,12 +67,44 @@ const shareProjectUpdate = (context: vscode.ExtensionContext) => {
         }),
       });
 
-      vscode.window.showInformationMessage("Project ID sent to the WebView");
+      shareProjectUpdatePanel.webview.onDidReceiveMessage(
+        async (message: any) => {
+          await processWebviewMessage(message, context);
+        },
+        undefined,
+        context.subscriptions
+      );
 
       // Add HTML to the WebView
       shareProjectUpdatePanel.webview.html = getWebviewContent(context);
     },
   };
+};
+
+const processWebviewMessage = async (
+  message: WebViewMessageSend,
+  context: vscode.ExtensionContext
+) => {
+  const command = message.command;
+  const data = JSON.parse(message.data);
+  switch (command) {
+    case "submitUpdate":
+      const projectId = data.projectId;
+      const udpateContent = `${data.updateContent}`;
+      console.log(projectId, udpateContent);
+      const commitAPI = context.workspaceState.get("commitAPI") as CommitAPI;
+      try {
+        await commitAPI.addProjectUpdate(projectId, udpateContent);
+        vscode.window.showInformationMessage("Update added successfully");
+      } catch (error: any) {
+        vscode.window.showErrorMessage(
+          "Unable to add update, please try again"
+        );
+      }
+      break;
+    default:
+      break;
+  }
 };
 
 export default shareProjectUpdate;

@@ -1,10 +1,3 @@
-// Custom Types
-// type Project = {
-//   id: string;
-//   title: string;
-//   urls: string[];
-// };
-
 type Project = {
   id: string;
   creatorUser: {
@@ -69,4 +62,19 @@ type GithuUserInfo = {
   email: string;
   avatarUrl: string;
   url: string;
+};
+
+type DecodedToken = {
+  exp: number;
+  iat: number;
+  iss: string;
+  sub: string;
+  aud: string;
+  email: string;
+  email_verified: boolean;
+};
+
+type WebViewMessageSend = {
+  command: string;
+  data: any;
 };

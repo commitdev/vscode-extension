@@ -1,3 +1,4 @@
+import jwt_decode from "jwt-decode";
 import * as vscode from "vscode";
 import {
   AuthenticationProvider,
@@ -52,8 +53,8 @@ export abstract class AuthProvider
   abstract getSecretKey(): string;
 
   /**
-   * Method to create a new Github Session
-   * @param scopes List of github scopes
+   * Method to create a new Session
+   * @param scopes List of scopes
    */
   abstract createSession(
     scopes: readonly string[]
@@ -90,7 +91,7 @@ export abstract class AuthProvider
   }
 
   /**
-   * Method to get the existing Commit Github App Sessions
+   * Method to get the existing Sessions
    * @param scopes Scopes to get the sessions for
    * @returns Array of AuthenticationSession
    */
@@ -103,7 +104,28 @@ export abstract class AuthProvider
       return [];
     }
 
-    return JSON.parse(allSessions) as AuthenticationSession[];
+    // Parse the sessions
+    const sessions = JSON.parse(allSessions) as AuthenticationSession[];
+
+    // if sessions length is greater than 0
+    const validSessions = sessions.filter((session) => {
+      if (!session.id.includes("commit-")) {
+        return false;
+      }
+      // Check is access token is expired
+      const { accessToken } = session;
+      const { exp } = jwt_decode(accessToken) as DecodedToken;
+
+      // If access token is expired, remove the session
+      if (exp < Date.now() / 1000) {
+        this.removeSession(session.id);
+        return;
+      }
+
+      return true;
+    });
+
+    return validSessions;
   }
 
   /**

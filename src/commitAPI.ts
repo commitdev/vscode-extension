@@ -46,10 +46,6 @@ export class CommitAPI {
     return this.userCommitSession;
   }
 
-  public get getUserGithubSession(): vscode.AuthenticationSession | null {
-    return this.userGithuSession;
-  }
-
   /**
    * Method to subscribe to project events
    * @param eventType : Type of event to subscribe to
@@ -65,6 +61,8 @@ export class CommitAPI {
     projectId: string,
     content: string
   ): Promise<void> {
+    // Remove double quotes from start and end of content
+    const updatedContent = content.replace(/^"(.*)"$/, "$1");
     // Check if user is logged in
     if (!this.userCommitSession) {
       throw new Error("You need to login to commit");
@@ -76,7 +74,7 @@ export class CommitAPI {
           mutation {
             createProjectUpdate(projectUpdate: {
                 projectId : "${projectId}",
-                content: "${content}",
+                content: "${updatedContent}",
             }) {
                 ... on ProjectUpdate {
                     id
@@ -157,7 +155,7 @@ export class CommitAPI {
         };
       }) as [Project];
     } catch (error: any) {
-      console.log(error.message);
+      // console.log(error.message);
       throw new Error("Error getting projects");
     }
   }
@@ -217,7 +215,7 @@ export class CommitAPI {
 
       return data.updateProject as Project;
     } catch (error: any) {
-      console.log(error);
+      // console.log(error);
       throw new Error("Error updating project");
     }
   }

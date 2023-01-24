@@ -1,81 +1,92 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Add bootstrap stylesheet -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous" />
 </head>
-<body class="m-5">
-  <div class="">
-    <h1 class="text-3xl font-bold">
-      Your Projects
-    </h1>
-  </div>
 
-  <!-- Button to refresh projects -->
-  <div class="mt-4">
-    <btn id="update-projects" class="bg-blue-500 hover:bg-blue-700 cursor-pointer text-white font-bold py-2 px-4 rounded">
-      Refresh Projects
-    </btn>
-  </div>
-  <!-- Project List table -->
-  <div class="my-2">
-    <table id="projects-table" class="shadow-lg bg-slate-800 border-separate">
-      <thead>
-        <tr>
-          <th class="bg-blue-300 border text-left px-8 py-4">Title</th>
-          <th class="bg-blue-300 border text-left px-8 py-4">Porject ID</th>
-        </tr>
-      </thead>
-      <tbody id="projects-table-body">
-      </tbody>
-    </table>
-  </div>
-  <script>
-    // Import the API, Keyring and some utility functions
-    const vscode = acquireVsCodeApi();
+<body class="container bg-transparent text-white">
+    <h1>Update Project</h1>
+    <!-- Markdown Editor and Preview -->
+    <div class="d-flex justify-content-between">
+        <textarea class="px-2 py-1 rounded" style="width: 47%" name="update-input" id="update-input" rows="20"></textarea>
+        <p class="px-2 py-1 rounded bg-light h-auto m-0 overflow-auto text-black" style="width: 47%" id="update-preview"></p>
+    </div>
 
-    // Create onload function
-    window.onload = function() {
-      vscode.postMessage({
-        command: 'updateProjects'
-      });
-    };
+    <!-- Button to refresh projects -->
+    <div class="d-flex justify-content-center w-100 pt-4">
+        <button type="button" class="btn btn-primary" id="submit-update" onclick="handleSubmitUpdateClick()">
+        Submit Update
+      </button>
+    </div>
+    <script src=" https://cdn.jsdelivr.net/npm/showdown@2.1.0/dist/showdown.min.js "></script>
+    <script>
+        // Import the API, Keyring and some utility functions
+        const vscode = acquireVsCodeApi();
+        var converter = new showdown.Converter();
+        let projectId = "";
 
-    // Button to refresh projects
-    const updateProjects = document.getElementById('update-projects');
-    // Add onclick listener to button
-    updateProjects.addEventListener('click', () => {
-      // Send a message back to the extension
-      vscode.postMessage({
-        command: 'updateProjects'
-      });
-    });
+        window.onload = () => {
+            // Get focus on the input field
+            document.getElementById("update-input").focus();
+        };
 
-    // Handle messages sent from the extension to the webview
-    window.addEventListener('message', event => {
-      const message = event.data; // The JSON data our extension sent
-      switch (message.command) {
-        case 'projects':
-          // Update the projects list
-          const projectsElm = document.getElementById('projects-table-body');
-          projectsElm.innerHTML = '';
+        // Handle textarea input change
+        window.addEventListener("input", (event) => {
+            const target = event.target;
+            const id = target.id;
+            const value = target.value;
 
-          // Load Message JSON String data into an array
-          const projects = JSON.parse(message.data);
-          projects.forEach(project => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-              <td class="border px-8 py-4">${project.title}</td>
-              <td class="border px-8 py-4">${project.id}</td>
-            `;
-            // Add classes to the row
-            row.classList.add('hover:bg-gray-500', 'cursor-pointer');
-            projectsElm.appendChild(row);
-          });
-          break;
-      }
-    });
-  </script>
+            switch (id) {
+                case "update-input":
+                    // Get the value of markdown input
+                    const markdownInput = document.getElementById("update-input");
+                    var html = converter.makeHtml(markdownInput.value);
+                    document.getElementById("update-preview").innerHTML = html;
+                    break;
+                default:
+                    break;
+            }
+        });
+
+        const handleSubmitUpdateClick = () => {
+            // Get the value of update input
+            const updateInput = document.getElementById("update-input");
+            const updateContent = updateInput.value;
+
+            const json = JSON.stringify({
+                updateContent: JSON.stringify(updateContent),
+                projectId: projectId,
+            });
+
+            // Send the update value to the extension
+            vscode.postMessage({
+                command: "submitUpdate",
+                data: json,
+            });
+        };
+
+        // Handle message posted from the extension
+        window.addEventListener("message", (event) => {
+            const eventData = event.data;
+            const command = eventData.command;
+            const data = eventData.data;
+
+            switch (command) {
+                case "setProjectId":
+                    // Update the project id
+                    const parsedData = JSON.parse(data);
+                    projectId = parsedData.projectId;
+                    break;
+                default:
+                    break;
+            }
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js " integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4 " crossorigin="anonymous "></script>
 </body>
+
 </html>

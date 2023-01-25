@@ -9,7 +9,7 @@ const addProjectComment = (
     callback: async () => {
       // Get the project from workspace state
       let selectedProject =
-        context.workspaceState.get<Project>("connectedProject");
+        context.workspaceState.get<Project>("defaultProject");
 
       // If project is not connected
       if (!selectedProject) {

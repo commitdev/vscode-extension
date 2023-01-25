@@ -22,7 +22,7 @@
         "onCommand:commit-extension.addProjectUpdates",
         "onCommand:commit-extension.viewProjects",
         "onCommand:commit-extension.addSubscriptions",
-        "onCommand:commit-extension.connectProject",
+        "onCommand:commit-extension.setDefaultProject",
         "onCommand:commit-extension.shareProject",
         "onCommand:commit-extension.shareProjectUpdate"
     ],
@@ -41,8 +41,8 @@
                 "title": "Commit: Subscribe to ..."
             },
             {
-                "command": "commit-extension.connectProject",
-                "title": "Commit: Connect to Project to Workspace"
+                "command": "commit-extension.setDefaultProject",
+                "title": "Commit: Set default project for workspace"
             },
             {
                 "command": "commit-extension.shareProject",

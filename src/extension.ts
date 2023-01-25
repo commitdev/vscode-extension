@@ -1,10 +1,11 @@
 import * as vscode from "vscode";
+import { API, GitExtension } from "./@types/git";
 import {
   Auth0AuthenticationProvider,
   AUTH_TYPE as AUTH0_AUTH_TYPE,
 } from "./authProviders/auth0AuthProvider";
 import addProjectComment from "./commands/commit/addProjectsUpdate";
-import connectProject from "./commands/commit/connectProejct";
+import setDefaultProject from "./commands/commit/setDefaultProject";
 import shareProject from "./commands/commit/shareProject";
 import shareProjectUpdate from "./commands/commit/shareProjectUpdate";
 import addSubscriptions from "./commands/commit/subscriptions";
@@ -19,10 +20,16 @@ export async function activate(this: any, context: vscode.ExtensionContext) {
   // Set CommitAPI
   await getCommitAPI(context);
 
+  // Setup Git Extension
+  await setupGitAPI(context);
+
+  // Setup Github Extension
+  await getGitExtension(context);
+
   // Array of commands
   const commands = [
     addProjectComment,
-    connectProject,
+    setDefaultProject,
     addSubscriptions,
     viewProjects,
     shareProject,
@@ -47,7 +54,7 @@ const handleAuth0SessionChange = async (context: vscode.ExtensionContext) => {
 
   if (!commitSession) {
     // Remove the project from workspace state
-    context.workspaceState.update("connectedProject", undefined);
+    context.workspaceState.update("defaultProject", undefined);
 
     // Remove the commitAPI from global state
     context.workspaceState.update("commitAPI", undefined);
@@ -106,6 +113,73 @@ const getCommitAPI = async (
   context.workspaceState.update("commitAPI", commitAPI);
 
   return commitAPI;
+};
+
+const setupGitAPI = async (context: vscode.ExtensionContext) => {
+  const extension: vscode.Extension<GitExtension> | undefined =
+    vscode.extensions.getExtension("vscode.git");
+  if (!extension) {
+    vscode.window.showErrorMessage("Git extension not installed");
+    return;
+  }
+
+  const gitExtension = extension.isActive
+    ? extension.exports
+    : await extension.activate();
+
+  const gitAPI: API = gitExtension.getAPI(1);
+
+  context.workspaceState.update("gitAPI", gitAPI);
+};
+
+const getGitExtension = async (context: vscode.ExtensionContext) => {
+  const extension: vscode.Extension<GitExtension> | undefined =
+    vscode.extensions.getExtension("vscode.git");
+  if (!extension) {
+    vscode.window.showErrorMessage("Git extension not installed");
+    return;
+  }
+
+  const gitExtension = extension.isActive
+    ? extension.exports
+    : await extension.activate();
+
+  const gitAPI: API = gitExtension.getAPI(1);
+
+  context.workspaceState.update("gitAPI", gitAPI);
+};
+
+const getCommitMessage = async (context: vscode.ExtensionContext) => {
+  const gitAPI = context.workspaceState.get<API>("gitAPI");
+  if (!gitAPI) {
+    return;
+  }
+
+  // Get workspace folder
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders) {
+    return;
+  }
+
+  // Get root path
+  const rootPath = workspaceFolders[0].uri.fsPath;
+
+  // Get repository
+  const repository = gitAPI.repositories.find(
+    (repo) => repo.rootUri.fsPath === rootPath
+  );
+
+  if (!repository) {
+    return;
+  }
+
+  // Get commit message
+  const commit = await repository.getCommit("HEAD");
+
+  const commitMEssage = commit?.message;
+
+  // const commitMessage: string | undefined = repository.state.HEAD?.commit;
+  return "commitMessage";
 };
 
 // This method is called when your extension is deactivated

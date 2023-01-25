@@ -1,9 +1,11 @@
 import * as vscode from "vscode";
 import { CommitAPI } from "../../commitAPI";
 
-const connectProject = (context: vscode.ExtensionContext): RegisterCommand => {
+const setDefaultProject = (
+  context: vscode.ExtensionContext
+): RegisterCommand => {
   return {
-    command: "commit-extension.connectProject",
+    command: "commit-extension.setDefaultProject",
     callback: async () => {
       const commitAPI = context.workspaceState.get("commitAPI") as CommitAPI;
       if (!commitAPI) {
@@ -42,12 +44,12 @@ const connectProject = (context: vscode.ExtensionContext): RegisterCommand => {
       );
 
       // Save the project in workspace state
-      context.workspaceState.update("connectedProject", selectedProject);
+      context.workspaceState.update("defaultProject", selectedProject);
 
       // Show the success message
-      vscode.window.showInformationMessage("Project connected successfully");
+      vscode.window.showInformationMessage("Default project set successfully");
     },
   };
 };
 
-export default connectProject;
+export default setDefaultProject;

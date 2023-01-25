@@ -16,22 +16,10 @@ export enum SubscriptionType {
 export class CommitAPI {
   private apolloClient: ApolloClient<NormalizedCacheObject>;
   private userCommitSession: vscode.AuthenticationSession | null;
-  private userGithuSession: vscode.AuthenticationSession | null;
 
   constructor(apolloClient: ApolloClient<NormalizedCacheObject>) {
     this.apolloClient = apolloClient;
     this.userCommitSession = null;
-    this.userGithuSession = null;
-  }
-
-  /**
-   * Method to set user github session
-   * @param userGithubSession : VSCode Authentication session for github
-   */
-  public setUserGithubSession(
-    userGithubSession: vscode.AuthenticationSession | null
-  ) {
-    this.userGithuSession = userGithubSession;
   }
 
   /**

@@ -15,11 +15,26 @@ const shareProjectUpdate = (context: vscode.ExtensionContext) => {
       }
 
       let projects: Project[] = [];
+
       try {
         projects = await commitAPI.getUserProjects();
       } catch (error: any) {
         vscode.window.showErrorMessage(error.message);
         return;
+      }
+
+      // Get default project
+      const defaultProject: Project | undefined =
+        context.workspaceState.get("defaultProject");
+      // Order the projects with default project first
+      if (defaultProject) {
+        const defaultProjectIndex = projects.findIndex(
+          (project) => project.id === defaultProject.id
+        );
+        if (defaultProjectIndex !== -1) {
+          projects.splice(defaultProjectIndex, 1);
+          projects.unshift(defaultProject);
+        }
       }
 
       if (!projects) {
@@ -29,7 +44,12 @@ const shareProjectUpdate = (context: vscode.ExtensionContext) => {
 
       // Show list of projects and get the selection
       const selectedProjectTitle = await vscode.window.showQuickPick(
-        projects.map((project: Project) => project.title),
+        projects.map((project: Project) => {
+          return (
+            project.title +
+            (project.id === defaultProject?.id ? " (Default)" : "")
+          );
+        }),
         {
           placeHolder: "Select a project",
         }
@@ -41,7 +61,8 @@ const shareProjectUpdate = (context: vscode.ExtensionContext) => {
 
       // Get the Project Object
       const selectedProject: Project | undefined = projects.find(
-        (project: { title: string }) => project.title === selectedProjectTitle
+        (project: { title: string }) =>
+          project.title === selectedProjectTitle.replace("(Default)", "")
       );
 
       if (!selectedProject || selectedProject === undefined) {

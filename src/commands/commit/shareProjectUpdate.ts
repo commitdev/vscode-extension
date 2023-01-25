@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { API } from "../../@types/git";
 import { CommitAPI } from "../../commitAPI";
 import { getWebviewContent } from "../../utils";
 
@@ -43,7 +44,7 @@ const shareProjectUpdate = (context: vscode.ExtensionContext) => {
       }
 
       // Show list of projects and get the selection
-      const selectedProjectTitle = await vscode.window.showQuickPick(
+      let selectedProjectTitle = await vscode.window.showQuickPick(
         projects.map((project: Project) => {
           return (
             project.title +
@@ -55,14 +56,16 @@ const shareProjectUpdate = (context: vscode.ExtensionContext) => {
         }
       );
 
-      if (!selectedProjectTitle) {
+      if (!selectedProjectTitle || selectedProjectTitle === undefined) {
         return;
       }
 
+      // Remove (Default) from the title
+      selectedProjectTitle = selectedProjectTitle.replace(" (Default)", "");
+
       // Get the Project Object
       const selectedProject: Project | undefined = projects.find(
-        (project: { title: string }) =>
-          project.title === selectedProjectTitle.replace("(Default)", "")
+        (project: { title: string }) => project.title === selectedProjectTitle
       );
 
       if (!selectedProject || selectedProject === undefined) {
@@ -82,9 +85,10 @@ const shareProjectUpdate = (context: vscode.ExtensionContext) => {
 
       // Send Project ID to the WebView
       shareProjectUpdatePanel.webview.postMessage({
-        command: "setProjectId",
+        command: "setWebViewProject",
         data: JSON.stringify({
           projectId: selectedProject.id,
+          lastCommitMessage: await getCommitMessage(context),
         }),
       });
 
@@ -126,6 +130,35 @@ const processWebviewMessage = async (
     default:
       break;
   }
+};
+
+const getCommitMessage = async (context: vscode.ExtensionContext) => {
+  const gitAPI = context.workspaceState.get<API>("gitAPI");
+  if (!gitAPI) {
+    return;
+  }
+
+  // Get workspace folder
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders) {
+    return;
+  }
+
+  // Get root path
+  const rootPath = workspaceFolders[0].uri.fsPath;
+
+  // Get repository
+  const repository = gitAPI.repositories.find(
+    (repo) => repo.rootUri.fsPath === rootPath
+  );
+
+  if (!repository) {
+    return;
+  }
+
+  // Get commit message
+  const commit = await repository.getCommit("HEAD");
+  return commit?.message || "";
 };
 
 export default shareProjectUpdate;

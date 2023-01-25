@@ -9,10 +9,11 @@
 </head>
 
 <body class="container bg-transparent text-white">
-    <h1>Update Project</h1>
+    <h1 class="d-flex justify-content-center py-2">Add Update Project</h1>
+    <p class="d-flex justify-content-center fst-italic">Update field is pre populated with last commit message from local git history</p>
     <!-- Markdown Editor and Preview -->
     <div class="d-flex justify-content-between">
-        <textarea class="px-2 py-1 rounded" style="width: 47%" name="update-input" id="update-input" rows="20"></textarea>
+        <textarea class="px-2 py-1 rounded" style="width: 47%" id="update-input" rows="20"></textarea>
         <p class="px-2 py-1 rounded bg-light h-auto m-0 overflow-auto text-black" style="width: 47%" id="update-preview"></p>
     </div>
 
@@ -28,8 +29,13 @@
         const vscode = acquireVsCodeApi();
         var converter = new showdown.Converter();
         let projectId = "";
+        let lastCommitMessage = "";
 
         window.onload = () => {
+            console.log("Loading")
+                // Set the value of the input field
+            const updateInput = document.getElementById("update-input");
+            updateInput.value = lastCommitMessage;
             // Get focus on the input field
             document.getElementById("update-input").focus();
         };
@@ -76,10 +82,14 @@
             const data = eventData.data;
 
             switch (command) {
-                case "setProjectId":
+                case "setWebViewProject":
                     // Update the project id
                     const parsedData = JSON.parse(data);
                     projectId = parsedData.projectId;
+                    lastCommitMessage = parsedData.lastCommitMessage;
+                    // Set the value of the input field
+                    const updateInput = document.getElementById("update-input");
+                    updateInput.value = lastCommitMessage;
                     break;
                 default:
                     break;

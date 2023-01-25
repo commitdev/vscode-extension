@@ -149,39 +149,6 @@ const getGitExtension = async (context: vscode.ExtensionContext) => {
   context.workspaceState.update("gitAPI", gitAPI);
 };
 
-const getCommitMessage = async (context: vscode.ExtensionContext) => {
-  const gitAPI = context.workspaceState.get<API>("gitAPI");
-  if (!gitAPI) {
-    return;
-  }
-
-  // Get workspace folder
-  const workspaceFolders = vscode.workspace.workspaceFolders;
-  if (!workspaceFolders) {
-    return;
-  }
-
-  // Get root path
-  const rootPath = workspaceFolders[0].uri.fsPath;
-
-  // Get repository
-  const repository = gitAPI.repositories.find(
-    (repo) => repo.rootUri.fsPath === rootPath
-  );
-
-  if (!repository) {
-    return;
-  }
-
-  // Get commit message
-  const commit = await repository.getCommit("HEAD");
-
-  const commitMEssage = commit?.message;
-
-  // const commitMessage: string | undefined = repository.state.HEAD?.commit;
-  return "commitMessage";
-};
-
 // This method is called when your extension is deactivated
 export function deactivate() {
   // Get extension context

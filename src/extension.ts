@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { API, GitExtension } from "./@types/git";
+import { API, GitExtension, PublishEvent } from "./@types/git";
 import {
   Auth0AuthenticationProvider,
   AUTH_TYPE as AUTH0_AUTH_TYPE,
@@ -40,6 +40,28 @@ export async function activate(this: any, context: vscode.ExtensionContext) {
       if (e.provider.id === AUTH0_AUTH_TYPE) {
         handleAuth0SessionChange(context);
       }
+    })
+  );
+
+  // Get Git API from workspace state
+  const gitAPI = context.workspaceState.get("gitAPI") as API;
+
+  // Get repository
+  const repository = gitAPI?.repositories[0];
+
+  // Subscribe to on Git status change
+  context.subscriptions.push(
+    repository?.state.onDidChange(async () => {
+      const commitAPI = context.workspaceState.get("commitAPI") as CommitAPI;
+      await commitAPI.showAddProjectUpdateNotification(context);
+    })
+  );
+
+  // Subscribe to on Git publish event
+  context.subscriptions.push(
+    gitAPI?.onDidPublish((e: PublishEvent) => {
+      // Get repository
+      const repository = e.repository;
     })
   );
 }
@@ -103,6 +125,9 @@ const getCommitAPI = async (
 
   // Set commit session to commitAPI
   commitAPI.setUserCommitSession(commitSession);
+
+  // Setup config
+  await commitAPI.setupConfig(context);
 
   // Add the commitAPI to the workspace state
   context.workspaceState.update("commitAPI", commitAPI);

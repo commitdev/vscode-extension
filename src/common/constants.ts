@@ -6,3 +6,4 @@ export const COMMIT_AUTH0_DOMAIN = process.env.COMMIT_AUTH0_DOMAIN;
 export const COMMIT_CLIENT_ID = process.env.COMMIT_CLIENT_ID;
 export const COMMIT_GITHUB_APP_CLIENT_ID =
   process.env.COMMIT_GITHUB_APP_CLIENT_ID;
+export const COMMIT_PROJECT_UDPATE_NOTIFICATION_INTERVAL = 1; // 1 minute

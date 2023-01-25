@@ -1,6 +1,8 @@
 import { ApolloClient, gql, NormalizedCacheObject } from "@apollo/client/core";
 
 import * as vscode from "vscode";
+import { API } from "./@types/git";
+import { COMMIT_PROJECT_UDPATE_NOTIFICATION_INTERVAL } from "./common/constants";
 
 export enum SubscriptionType {
   // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -205,6 +207,75 @@ export class CommitAPI {
     } catch (error: any) {
       // console.log(error);
       throw new Error("Error updating project");
+    }
+  }
+
+  public async setupConfig(context: vscode.ExtensionContext): Promise<void> {
+    // Setup up project update notification interval
+    context.workspaceState.update(
+      "commitNotificationInterval",
+      COMMIT_PROJECT_UDPATE_NOTIFICATION_INTERVAL
+    );
+  }
+
+  public async showAddProjectUpdateNotification(
+    context: vscode.ExtensionContext
+  ): Promise<void> {
+    // Get Git API from workspace state
+    const gitAPI = context.workspaceState.get("gitAPI") as API;
+
+    // Get repository
+    const repository = gitAPI?.repositories[0];
+
+    // TODO: Get worktree changes and suggest to add update to Commit Project
+    const worktreeChanges = repository?.state.workingTreeChanges;
+
+    if (!worktreeChanges?.length) {
+      return;
+    }
+
+    // Get last time the notification was shown
+    const lastNotificationShown = context.workspaceState.get(
+      "commitLastNotificationShown"
+    ) as number;
+
+    // Check if the notification was shown in the last configured minutes
+    if (lastNotificationShown) {
+      const currentTime = new Date().getTime();
+      const commitNotificationInterval =
+        (context.workspaceState.get("commitNotificationInterval") as number) *
+        1000;
+      if (currentTime - lastNotificationShown < commitNotificationInterval) {
+        return;
+      }
+    }
+
+    if (worktreeChanges?.length >= 1) {
+      // Check if the notification to add Project update should be shown
+      const commitAPI = context.workspaceState.get("commitAPI") as CommitAPI;
+      if (await commitAPI.showAddProjectUpdateNotification) {
+        // Show notification with yes and no buttons
+        vscode.window
+          .showInformationMessage(
+            "Would you like to add an update to your Commit Project?",
+            "Yes",
+            "No"
+          )
+          .then(async (selection) => {
+            if (selection === "Yes") {
+              // Initiate the add Project update command
+              vscode.commands.executeCommand(
+                "commit-extension.shareProjectUpdate"
+              );
+
+              // Update the last time the notification was shown in the workspace state
+              context.workspaceState.update(
+                "commitLastNotificationShown",
+                new Date().getTime()
+              );
+            }
+          });
+      }
     }
   }
 }

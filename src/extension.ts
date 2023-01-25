@@ -4,7 +4,6 @@ import {
   Auth0AuthenticationProvider,
   AUTH_TYPE as AUTH0_AUTH_TYPE,
 } from "./authProviders/auth0AuthProvider";
-import addProjectComment from "./commands/commit/addProjectsUpdate";
 import setDefaultProject from "./commands/commit/setDefaultProject";
 import shareProject from "./commands/commit/shareProject";
 import shareProjectUpdate from "./commands/commit/shareProjectUpdate";
@@ -23,12 +22,8 @@ export async function activate(this: any, context: vscode.ExtensionContext) {
   // Setup Git Extension
   await setupGitAPI(context);
 
-  // Setup Github Extension
-  await getGitExtension(context);
-
   // Array of commands
   const commands = [
-    addProjectComment,
     setDefaultProject,
     addSubscriptions,
     viewProjects,
@@ -116,23 +111,6 @@ const getCommitAPI = async (
 };
 
 const setupGitAPI = async (context: vscode.ExtensionContext) => {
-  const extension: vscode.Extension<GitExtension> | undefined =
-    vscode.extensions.getExtension("vscode.git");
-  if (!extension) {
-    vscode.window.showErrorMessage("Git extension not installed");
-    return;
-  }
-
-  const gitExtension = extension.isActive
-    ? extension.exports
-    : await extension.activate();
-
-  const gitAPI: API = gitExtension.getAPI(1);
-
-  context.workspaceState.update("gitAPI", gitAPI);
-};
-
-const getGitExtension = async (context: vscode.ExtensionContext) => {
   const extension: vscode.Extension<GitExtension> | undefined =
     vscode.extensions.getExtension("vscode.git");
   if (!extension) {

@@ -73,35 +73,70 @@ const shareProjectUpdate = (context: vscode.ExtensionContext) => {
         return;
       }
 
-      // Create a WebView Panel
-      const shareProjectUpdatePanel = vscode.window.createWebviewPanel(
-        "commitExtension",
-        "Share Project Update",
-        vscode.ViewColumn.One,
+      // Prompt user if they want multiline or single line update
+      const isMultilineUpdate = await vscode.window.showQuickPick(
+        ["Yes", "No"],
         {
-          enableScripts: true,
+          placeHolder: "Do you want to add a multiline update?",
         }
       );
 
-      // Send Project ID to the WebView
-      shareProjectUpdatePanel.webview.postMessage({
-        command: "setWebViewProject",
-        data: JSON.stringify({
-          projectId: selectedProject.id,
-          lastCommitMessage: await getCommitMessage(context),
-        }),
-      });
+      if (isMultilineUpdate === "No" || isMultilineUpdate === undefined) {
+        // Open TextInput dialog
+        vscode.window
+          .showInputBox({
+            prompt: "Enter the project update",
+            placeHolder: "Implementing new feature ...",
+            value: await getCommitMessage(context),
+          })
+          .then((value) => {
+            if (value) {
+              try {
+                commitAPI.addProjectUpdate(selectedProject!.id, value);
 
-      shareProjectUpdatePanel.webview.onDidReceiveMessage(
-        async (message: any) => {
-          await processWebviewMessage(message, context);
-        },
-        undefined,
-        context.subscriptions
-      );
+                vscode.window.showInformationMessage(
+                  "Project update successfully added"
+                );
+              } catch (e) {
+                // Show the error message
+                vscode.window.showErrorMessage("Unable to add project update");
+              }
+            }
+          });
+      } else {
+        // Create a WebView Panel
+        const shareProjectUpdatePanel = vscode.window.createWebviewPanel(
+          "commitExtension",
+          "Share Project Update",
+          vscode.ViewColumn.One,
+          {
+            enableScripts: true,
+          }
+        );
 
-      // Add HTML to the WebView
-      shareProjectUpdatePanel.webview.html = getWebviewContent(context);
+        // Send Project ID to the WebView
+        shareProjectUpdatePanel.webview.postMessage({
+          command: "setWebViewProject",
+          data: JSON.stringify({
+            projectId: selectedProject.id,
+            lastCommitMessage: await getCommitMessage(context),
+          }),
+        });
+
+        shareProjectUpdatePanel.webview.onDidReceiveMessage(
+          async (message: any) => {
+            await processWebviewMessage(message, context);
+
+            // Close the WebView Panel
+            shareProjectUpdatePanel.dispose();
+          },
+          undefined,
+          context.subscriptions
+        );
+
+        // Add HTML to the WebView
+        shareProjectUpdatePanel.webview.html = getWebviewContent(context);
+      }
     },
   };
 };

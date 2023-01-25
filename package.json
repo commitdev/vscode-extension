@@ -19,7 +19,6 @@
     ],
     "activationEvents": [
         "onStartupFinished",
-        "onCommand:commit-extension.addProjectUpdates",
         "onCommand:commit-extension.viewProjects",
         "onCommand:commit-extension.addSubscriptions",
         "onCommand:commit-extension.setDefaultProject",
@@ -29,10 +28,6 @@
     "main": "./dist/extension.js",
     "contributes": {
         "commands": [{
-                "command": "commit-extension.addProjectUpdates",
-                "title": "Commit: Add Project Updates"
-            },
-            {
                 "command": "commit-extension.viewProjects",
                 "title": "Commit: View Projects"
             },

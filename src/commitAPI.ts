@@ -230,6 +230,8 @@ export class CommitAPI {
     // TODO: Get worktree changes and suggest to add update to Commit Project
     const worktreeChanges = repository?.state.workingTreeChanges;
 
+    const repositoryLogs = await repository?.log({ maxEntries: 10 });
+
     if (!worktreeChanges?.length) {
       return;
     }

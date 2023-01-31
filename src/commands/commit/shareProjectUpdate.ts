@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { API } from "../../@types/git";
+import { API, Commit } from "../../@types/git";
 import { CommitAPI } from "../../commitAPI";
 import { getWebviewContent } from "../../utils";
 
@@ -24,6 +24,11 @@ const shareProjectUpdate = (context: vscode.ExtensionContext) => {
         return;
       }
 
+      if (!projects) {
+        vscode.window.showInformationMessage("No projects found");
+        return;
+      }
+
       // Get default project
       const defaultProject: Project | undefined =
         context.workspaceState.get("defaultProject");
@@ -36,11 +41,6 @@ const shareProjectUpdate = (context: vscode.ExtensionContext) => {
           projects.splice(defaultProjectIndex, 1);
           projects.unshift(defaultProject);
         }
-      }
-
-      if (!projects) {
-        vscode.window.showInformationMessage("No projects found");
-        return;
       }
 
       // Show list of projects and get the selection
@@ -72,71 +72,43 @@ const shareProjectUpdate = (context: vscode.ExtensionContext) => {
         vscode.window.showErrorMessage("Project not found");
         return;
       }
-
-      // Prompt user if they want multiline or single line update
-      const isMultilineUpdate = await vscode.window.showQuickPick(
-        ["Yes", "No"],
+      // Create a WebView Panel
+      const shareProjectUpdatePanel = vscode.window.createWebviewPanel(
+        "commitExtension",
+        "Share Project Update",
+        vscode.ViewColumn.One,
         {
-          placeHolder: "Do you want to add a multiline update?",
+          enableScripts: true,
         }
       );
 
-      if (isMultilineUpdate === "No" || isMultilineUpdate === undefined) {
-        // Open TextInput dialog
-        vscode.window
-          .showInputBox({
-            prompt: "Enter the project update",
-            placeHolder: "Implementing new feature ...",
-            value: await getCommitMessage(context),
-          })
-          .then((value) => {
-            if (value) {
-              try {
-                commitAPI.addProjectUpdate(selectedProject!.id, value);
+      // Get git commits
+      const repositoryCommits: Commit[] | undefined = await getGitCommits(
+        context
+      );
 
-                vscode.window.showInformationMessage(
-                  "Project update successfully added"
-                );
-              } catch (e) {
-                // Show the error message
-                vscode.window.showErrorMessage("Unable to add project update");
-              }
-            }
-          });
-      } else {
-        // Create a WebView Panel
-        const shareProjectUpdatePanel = vscode.window.createWebviewPanel(
-          "commitExtension",
-          "Share Project Update",
-          vscode.ViewColumn.One,
-          {
-            enableScripts: true,
-          }
-        );
+      // Send Project ID to the WebView3
+      shareProjectUpdatePanel.webview.postMessage({
+        command: "setWebViewProject",
+        data: JSON.stringify({
+          projectId: selectedProject.id,
+          repositoryCommits: repositoryCommits || [],
+        }),
+      });
 
-        // Send Project ID to the WebView
-        shareProjectUpdatePanel.webview.postMessage({
-          command: "setWebViewProject",
-          data: JSON.stringify({
-            projectId: selectedProject.id,
-            lastCommitMessage: await getCommitMessage(context),
-          }),
-        });
+      shareProjectUpdatePanel.webview.onDidReceiveMessage(
+        async (message: any) => {
+          await processWebviewMessage(message, context);
 
-        shareProjectUpdatePanel.webview.onDidReceiveMessage(
-          async (message: any) => {
-            await processWebviewMessage(message, context);
+          // Close the WebView Panel
+          shareProjectUpdatePanel.dispose();
+        },
+        undefined,
+        context.subscriptions
+      );
 
-            // Close the WebView Panel
-            shareProjectUpdatePanel.dispose();
-          },
-          undefined,
-          context.subscriptions
-        );
-
-        // Add HTML to the WebView
-        shareProjectUpdatePanel.webview.html = getWebviewContent(context);
-      }
+      // Add HTML to the WebView
+      shareProjectUpdatePanel.webview.html = getWebviewContent(context);
     },
   };
 };
@@ -151,7 +123,6 @@ const processWebviewMessage = async (
     case "submitUpdate":
       const projectId = data.projectId;
       const udpateContent = `${data.updateContent}`;
-      console.log(projectId, udpateContent);
       const commitAPI = context.workspaceState.get("commitAPI") as CommitAPI;
       try {
         await commitAPI.addProjectUpdate(projectId, udpateContent);
@@ -167,33 +138,34 @@ const processWebviewMessage = async (
   }
 };
 
-const getCommitMessage = async (context: vscode.ExtensionContext) => {
+const getGitCommits: (
+  context: vscode.ExtensionContext
+) => Promise<Commit[] | undefined> = async (
+  context: vscode.ExtensionContext,
+  maxEntries: number = 10
+) => {
   const gitAPI = context.workspaceState.get<API>("gitAPI");
+
   if (!gitAPI) {
-    return;
+    return [];
   }
 
-  // Get workspace folder
+  // Get Worspace folder
   const workspaceFolders = vscode.workspace.workspaceFolders;
-  if (!workspaceFolders) {
-    return;
+
+  if (!workspaceFolders || workspaceFolders.length === 0) {
+    return [];
   }
 
-  // Get root path
-  const rootPath = workspaceFolders[0].uri.fsPath;
+  // Get the respository in the first workspace folder
+  // TODO: At this point this will always pick the the first workspace folder
+  // TODO: Add support for multiple workspace folders
+  const workspaceFolder = workspaceFolders[0];
+  const repository = gitAPI.getRepository(workspaceFolder.uri);
 
-  // Get repository
-  const repository = gitAPI.repositories.find(
-    (repo) => repo.rootUri.fsPath === rootPath
-  );
-
-  if (!repository) {
-    return;
-  }
-
-  // Get commit message
-  const commit = await repository.getCommit("HEAD");
-  return commit?.message || "";
+  return await repository?.log({
+    maxEntries,
+  });
 };
 
 export default shareProjectUpdate;

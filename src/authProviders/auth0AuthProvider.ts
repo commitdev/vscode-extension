@@ -75,7 +75,7 @@ export class Auth0AuthenticationProvider extends AuthProvider {
         id: "commit-" + uuid(),
         accessToken: accessToken,
         account: {
-          label: userInfo.name,
+          label: `${userInfo.name} <${userInfo.email}>`,
           id: userInfo.id,
         },
         scopes: scopes,

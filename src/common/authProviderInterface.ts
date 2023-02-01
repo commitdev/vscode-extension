@@ -84,20 +84,6 @@ export abstract class AuthProvider
 
     await this.context.secrets.delete(this.getSecretKey());
 
-    // Remove all workspace state settings for commit
-    await this.getContext().workspaceState.update("defaultProject", undefined);
-    await this.getContext().workspaceState.update(
-      "commitNotificationInterval",
-      undefined
-    );
-    await this.getContext().workspaceState.update(
-      "commitLastNotificationShown",
-      undefined
-    );
-    await this.getContext().workspaceState.update("commitAPI", undefined);
-    await this.getContext().workspaceState.update("gitAPI", undefined);
-    await this.getContext().workspaceState.update("commitUserInfo", undefined);
-
     this._onDidChangeSessions.fire({
       added: [],
       removed: [session],

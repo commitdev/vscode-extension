@@ -134,7 +134,7 @@ export class Auth0AuthenticationProvider extends AuthProvider {
 
       const data = (await response.json()) as any;
       return {
-        email: "daman@navaventures.io",
+        email: data.email,
         id: data.id,
         name: data.name,
         commits: [],

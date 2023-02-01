@@ -14,6 +14,8 @@ import { createClient } from "graphql-ws";
 import fetch from "node-fetch";
 import * as vscode from "vscode";
 import { WebSocket } from "ws";
+import { API, Commit } from "./@types/git";
+import { RegisterCommand, UserInfo } from "./@types/types";
 import {
   COMMIT_API_BASE_URL,
   COMMIT_GRAPHQL_API_URL,
@@ -106,4 +108,42 @@ export const getWebviewContent = (context: vscode.ExtensionContext) => {
   const html = htmlPath.with({ scheme: "vscode-resource" });
 
   return fs.readFileSync(html.fsPath, "utf8");
+};
+
+export const getGitCommits: (
+  context: vscode.ExtensionContext
+) => Promise<Commit[] | undefined> = async (
+  context: vscode.ExtensionContext,
+  maxEntries: number = 10
+) => {
+  const gitAPI = context.workspaceState.get<API>("gitAPI");
+  const userInfo = context.workspaceState.get<UserInfo>("commitUserInfo");
+
+  if (!gitAPI) {
+    return [];
+  }
+
+  // Get Worspace folder
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+
+  if (!workspaceFolders || workspaceFolders.length === 0) {
+    return [];
+  }
+
+  // Get the respository in the first workspace folder
+  // TODO: At this point this will always pick the the first workspace folder
+  // TODO: Add support for multiple workspace folders
+  const workspaceFolder = workspaceFolders[0];
+  const repository = gitAPI.getRepository(workspaceFolder.uri);
+
+  if (!repository) {
+    return [];
+  }
+  const userCommits = (await repository?.log({ maxEntries })).filter(
+    (commit) => {
+      return commit.authorEmail === userInfo?.email;
+    }
+  );
+
+  return userCommits;
 };

@@ -7,6 +7,12 @@ import {
   Uri,
   window,
 } from "vscode";
+import {
+  AuthDetails,
+  CommitPollAccessTokenResponse,
+  UserDeviceCode,
+  UserInfo,
+} from "../@types/types";
 import { AuthProvider } from "../common/authProviderInterface";
 import {
   COMMIT_API_BASE_URL,
@@ -69,7 +75,7 @@ export class Auth0AuthenticationProvider extends AuthProvider {
         throw new Error(`Commit login failed`);
       }
 
-      const userInfo = await this._getUserInfo(accessToken);
+      const userInfo: UserInfo = await this._getUserInfo(accessToken);
 
       const session: AuthenticationSession = {
         id: "commit-" + uuid(),
@@ -128,9 +134,10 @@ export class Auth0AuthenticationProvider extends AuthProvider {
 
       const data = (await response.json()) as any;
       return {
-        email: data.email,
+        email: "daman@navaventures.io",
         id: data.id,
         name: data.name,
+        commits: [],
       };
     } catch (e) {
       throw new Error(`Get user info failed: ${e}`);

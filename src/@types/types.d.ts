@@ -1,3 +1,5 @@
+import { Commit } from "./git";
+
 type Project = {
   id: string;
   creatorUser: {
@@ -33,6 +35,7 @@ type UserInfo = {
   email: string;
   id: string;
   name: string;
+  commits: Commit[];
 };
 
 type RegisterCommand = {

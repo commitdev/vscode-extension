@@ -1,7 +1,8 @@
 import * as vscode from "vscode";
-import { API, Commit } from "../../@types/git";
+import { Commit } from "../../@types/git";
+import { Project, WebViewMessageSend } from "../../@types/types";
 import { CommitAPI } from "../../commitAPI";
-import { getWebviewContent } from "../../utils";
+import { getGitCommits, getWebviewContent } from "../../utils";
 
 const shareProjectUpdate = (context: vscode.ExtensionContext) => {
   return {
@@ -136,36 +137,6 @@ const processWebviewMessage = async (
     default:
       break;
   }
-};
-
-const getGitCommits: (
-  context: vscode.ExtensionContext
-) => Promise<Commit[] | undefined> = async (
-  context: vscode.ExtensionContext,
-  maxEntries: number = 10
-) => {
-  const gitAPI = context.workspaceState.get<API>("gitAPI");
-
-  if (!gitAPI) {
-    return [];
-  }
-
-  // Get Worspace folder
-  const workspaceFolders = vscode.workspace.workspaceFolders;
-
-  if (!workspaceFolders || workspaceFolders.length === 0) {
-    return [];
-  }
-
-  // Get the respository in the first workspace folder
-  // TODO: At this point this will always pick the the first workspace folder
-  // TODO: Add support for multiple workspace folders
-  const workspaceFolder = workspaceFolders[0];
-  const repository = gitAPI.getRepository(workspaceFolder.uri);
-
-  return await repository?.log({
-    maxEntries,
-  });
 };
 
 export default shareProjectUpdate;

@@ -1,3 +1,5 @@
+import { Project } from "../@types/types";
+
 abstract class ProjectProvider {
   abstract getAllProjects(): Promise<Project[]>;
   abstract getProject(projecdId: string): Promise<Project>;

@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { Project, RegisterCommand } from "../../@types/types";
 import { CommitAPI } from "../../commitAPI";
 
 const setDefaultProject = (

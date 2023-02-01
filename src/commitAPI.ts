@@ -1,8 +1,10 @@
 import { ApolloClient, gql, NormalizedCacheObject } from "@apollo/client/core";
 
 import * as vscode from "vscode";
-import { API } from "./@types/git";
+import { API, Commit } from "./@types/git";
+import { Project, UserInfo } from "./@types/types";
 import { COMMIT_PROJECT_UDPATE_NOTIFICATION_INTERVAL } from "./common/constants";
+import { getGitCommits } from "./utils";
 
 export enum SubscriptionType {
   // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -220,6 +222,92 @@ export class CommitAPI {
 
   public async showAddProjectUpdateNotification(
     context: vscode.ExtensionContext
+  ) {
+    // If it was shown in the last configured minutes, don't show the notification
+    const lastNotificationShownTime = context.workspaceState.get(
+      "lastNotificationShownTime"
+    ) as number;
+
+    if (
+      lastNotificationShownTime &&
+      Date.now() - lastNotificationShownTime <
+        COMMIT_PROJECT_UDPATE_NOTIFICATION_INTERVAL * 1000 * 20
+    ) {
+      console.log("Notification already shown");
+      return;
+    }
+
+    // Get commit history from workspace state
+    const userInfo = context.workspaceState.get("commitUserInfo") as UserInfo;
+
+    if (userInfo === undefined) {
+      return;
+    }
+
+    // Get the recent commit history for the project
+    const gitCommitHistory = (await getGitCommits(context)) as Commit[];
+
+    if (gitCommitHistory.length === 0) {
+      return;
+    }
+
+    if (userInfo.commits.length === 0) {
+      context.workspaceState.update("commitUserInfo", {
+        ...userInfo,
+        commits: gitCommitHistory,
+      });
+      return;
+    }
+
+    // Get the first commits from the user and git history, to compare the dates and hashes
+    const userLastCommit = userInfo.commits[0];
+    const gitHistoryLastCommit = gitCommitHistory[0];
+
+    if (
+      userLastCommit.hash === gitHistoryLastCommit.hash ||
+      gitHistoryLastCommit.commitDate === undefined
+    ) {
+      return;
+    }
+
+    // If user last commit date is undefined, update the workspace state commit history for user and return
+    if (userLastCommit.commitDate === undefined) {
+      context.workspaceState.update("userInfo", {
+        ...userInfo,
+        commits: gitCommitHistory,
+      });
+      return;
+    }
+
+    // Check if gitHistoryLastCommit.commitDate is greater than userLastCommit.commitDate
+    if (gitHistoryLastCommit.commitDate > userLastCommit.commitDate) {
+      // Show notification
+      const promptResult = await vscode.window.showInformationMessage(
+        "Looks like you've been hard at work, how about sharing a project update?",
+        "Yes",
+        "No"
+      );
+
+      if (promptResult === "No") {
+        return;
+      }
+
+      // Update the workspace state commit history for user
+      context.workspaceState.update("commitUserInfo", {
+        ...userInfo,
+        commits: gitCommitHistory,
+      });
+
+      // Update the last notification shown time
+      context.workspaceState.update("lastNotificationShownTime", Date.now());
+
+      // Open the Commit Project view
+      vscode.commands.executeCommand("commit-extension.shareProjectUpdate");
+    }
+  }
+
+  public async showAddProjectUpdateNotificationOld(
+    context: vscode.ExtensionContext
   ): Promise<void> {
     // Get Git API from workspace state
     const gitAPI = context.workspaceState.get("gitAPI") as API;
@@ -255,7 +343,7 @@ export class CommitAPI {
     if (worktreeChanges?.length >= 1) {
       // Check if the notification to add Project update should be shown
       const commitAPI = context.workspaceState.get("commitAPI") as CommitAPI;
-      if (await commitAPI.showAddProjectUpdateNotification) {
+      if (await commitAPI.showAddProjectUpdateNotificationOld) {
         // Show notification with yes and no buttons
         vscode.window
           .showInformationMessage(

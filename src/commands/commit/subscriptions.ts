@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { RegisterCommand } from "../../@types/types";
 import { SubscriptionType } from "../../commitAPI";
 const addSubscriptions = (
   context: vscode.ExtensionContext

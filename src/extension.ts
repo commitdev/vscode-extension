@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
-import { API, GitExtension, PublishEvent } from "./@types/git";
+import { API, GitExtension } from "./@types/git";
+import { UserInfo } from "./@types/types";
 import {
   Auth0AuthenticationProvider,
   AUTH_TYPE as AUTH0_AUTH_TYPE,
@@ -46,8 +47,12 @@ export async function activate(this: any, context: vscode.ExtensionContext) {
   // Get Git API from workspace state
   const gitAPI = context.workspaceState.get("gitAPI") as API;
 
+  if (gitAPI === undefined) {
+    return;
+  }
+
   // Get repository
-  const repository = gitAPI?.repositories[0];
+  const repository = gitAPI.repositories[0];
 
   // Subscribe to on Git status change
   context.subscriptions.push(
@@ -57,24 +62,30 @@ export async function activate(this: any, context: vscode.ExtensionContext) {
     })
   );
 
-  // Subscribe to on Git publish event
-  context.subscriptions.push(
-    gitAPI?.onDidPublish((e: PublishEvent) => {
-      // Get repository
-      const repository = e.repository;
-    })
-  );
+  // Try showing the add project update notification
+  const commitAPI = context.workspaceState.get("commitAPI") as CommitAPI;
+  if (commitAPI) {
+    await commitAPI.showAddProjectUpdateNotification(context);
+  }
 }
 
 const handleAuth0SessionChange = async (context: vscode.ExtensionContext) => {
   const commitSession = await getCommitSessions();
 
   if (!commitSession) {
-    // Remove the project from workspace state
-    context.workspaceState.update("defaultProject", undefined);
-
-    // Remove the commitAPI from global state
-    context.workspaceState.update("commitAPI", undefined);
+    // Remove all workspace state settings for commit
+    await context.workspaceState.update("defaultProject", undefined);
+    await context.workspaceState.update(
+      "commitNotificationInterval",
+      undefined
+    );
+    await context.workspaceState.update(
+      "commitLastNotificationShown",
+      undefined
+    );
+    await context.workspaceState.update("commitAPI", undefined);
+    await context.workspaceState.update("gitAPI", undefined);
+    await context.workspaceState.update("commitUserInfo", undefined);
 
     return;
   }
@@ -131,6 +142,16 @@ const getCommitAPI = async (
 
   // Add the commitAPI to the workspace state
   context.workspaceState.update("commitAPI", commitAPI);
+
+  // Add userInfo to workspace state
+  // extract email from commit session label "name <email>"
+  const userInfo: UserInfo = {
+    email: commitSession.account.label.split("<")[1].split(">")[0],
+    name: commitSession.account.label.split("<")[0].trim(),
+    id: commitSession.account.id,
+    commits: [],
+  };
+  context.workspaceState.update("commitUserInfo", userInfo);
 
   return commitAPI;
 };

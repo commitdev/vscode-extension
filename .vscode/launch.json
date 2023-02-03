@@ -23,7 +23,6 @@
 				"COMMIT_APP_BASE_URL": "https://app.commit-staging.dev",
 				"COMMIT_AUTH0_DOMAIN": "https://commit-staging.us.auth0.com",
 				"COMMIT_CLIENT_ID": "6UcJAI6tXW6leADCdqsGqo5Aoo4fL5C8",
-				"COMMIT_GITHUB_APP_CLIENT_ID": "Iv1.bddf49045e4040d4",
 			}
 		},
 		{

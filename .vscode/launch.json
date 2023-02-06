@@ -17,27 +17,7 @@
 			],
 			"preLaunchTask": "${defaultBuildTask}",
 			// Environment variables to pass to the extension
-			"env": {
-				"COMMIT_GRAPHQL_API_URL": "https://api.commit-staging.dev/graphql",
-				"COMMIT_API_BASE_URL": "https://api.commit-staging.dev",
-				"COMMIT_APP_BASE_URL": "https://app.commit-staging.dev",
-				"COMMIT_AUTH0_DOMAIN": "https://commit-staging.us.auth0.com",
-				"COMMIT_CLIENT_ID": "6UcJAI6tXW6leADCdqsGqo5Aoo4fL5C8",
-			}
-		},
-		{
-			"name": "Extension Tests",
-			"type": "extensionHost",
-			"request": "launch",
-			"args": [
-				"--extensionDevelopmentPath=${workspaceFolder}",
-				"--extensionTestsPath=${workspaceFolder}/out/test/suite/index"
-			],
-			"outFiles": [
-				"${workspaceFolder}/out/**/*.js",
-				"${workspaceFolder}/dist/**/*.js"
-			],
-			"preLaunchTask": "tasks: watch-tests"
+			"envFile": "${workspaceFolder}/.env"
 		}
 	]
 }

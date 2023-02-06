@@ -19,10 +19,10 @@ jobs:
       # Build the extension
       - run: vsce package
         env:
-          COMMIT_GRAPHQL_API_URL : https://api.commit-staging.dev/graphql
-          COMMIT_API_BASE_URL : https://api.commit-staging.dev
-          COMMIT_APP_BASE_URL : https://app.commit-staging.dev
-          COMMIT_AUTH0_DOMAIN : https://commit-staging.us.auth0.com
+          COMMIT_GRAPHQL_API_URL : https://api.commit.dev/graphql
+          COMMIT_API_BASE_URL : https://api.commit.dev
+          COMMIT_APP_BASE_URL : https://app.commit.dev
+          COMMIT_AUTH0_DOMAIN : https://commitdev.auth0.com
           COMMIT_CLIENT_ID : ${{ secrets.COMMIT_CLIENT_ID_STAGING }}
       # Upload the VSIX file as an artifact with version number
       - uses: actions/upload-artifact@v3

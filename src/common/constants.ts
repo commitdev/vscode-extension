@@ -4,4 +4,4 @@ export const COMMIT_API_BASE_URL = process.env.COMMIT_API_BASE_URL;
 export const COMMIT_APP_BASE_URL = process.env.COMMIT_APP_BASE_URL;
 export const COMMIT_AUTH0_DOMAIN = process.env.COMMIT_AUTH0_DOMAIN;
 export const COMMIT_CLIENT_ID = process.env.COMMIT_CLIENT_ID;
-export const COMMIT_PROJECT_UDPATE_NOTIFICATION_INTERVAL = 1; // 1 minute
+export const COMMIT_PROJECT_UDPATE_NOTIFICATION_INTERVAL = 1000 * 60 * 60 * 24; // 1 day

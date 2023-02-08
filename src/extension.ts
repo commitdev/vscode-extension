@@ -1,29 +1,39 @@
 import * as vscode from "vscode";
 import { API, GitExtension } from "./@types/git";
-import { UserInfo } from "./@types/types";
-import {
-  Auth0AuthenticationProvider,
-  AUTH_TYPE as AUTH0_AUTH_TYPE,
-} from "./authProviders/auth0AuthProvider";
+import { Auth0AuthProvider } from "./authProviders/authProvider";
 import setDefaultProject from "./commands/commit/setDefaultProject";
 import shareProject from "./commands/commit/shareProject";
 import shareProjectUpdate from "./commands/commit/shareProjectUpdate";
 import addSubscriptions from "./commands/commit/subscriptions";
 import viewProjects from "./commands/commit/viewProjects";
 import { CommitAPI } from "./commitAPI";
+import { COMMIT_AUTH_TYPE } from "./common/constants";
 import { getCommitApolloClient, registerCommand } from "./utils";
 
 export async function activate(this: any, context: vscode.ExtensionContext) {
   // Register the authentication provider
-  context.subscriptions.push(new Auth0AuthenticationProvider(context));
+  const subscriptions = context.subscriptions;
 
-  // Set CommitAPI
-  await getCommitAPI(context);
+  subscriptions.push(new Auth0AuthProvider(context));
 
-  // Setup Git Extension
-  await setupGitAPI(context);
+  // Get Commit Session
+  await getCommitSessions();
 
-  // Array of commands
+  // Register subscription to update commit session
+  subscriptions.push(
+    vscode.authentication.onDidChangeSessions(async (e) => {
+      if (e.provider.id === COMMIT_AUTH_TYPE) {
+        await getCommitSessions();
+        const commitAPI = await setupCommitAPI(context);
+        await commitAPI?.showAddProjectUpdateNotification(context);
+      }
+    })
+  );
+
+  // Setup Commit API
+  await setupCommitAPI(context);
+
+  // Setup up Commit Commands
   const commands = [
     setDefaultProject,
     addSubscriptions,
@@ -35,87 +45,37 @@ export async function activate(this: any, context: vscode.ExtensionContext) {
   // Register all the commands
   commands.forEach((command) => registerCommand(command(context)));
 
-  // Register subscription to update commit session
-  context.subscriptions.push(
-    vscode.authentication.onDidChangeSessions(async (e) => {
-      if (e.provider.id === AUTH0_AUTH_TYPE) {
-        handleAuth0SessionChange(context);
-      }
-    })
-  );
-
-  // Get Git API from workspace state
-  const gitAPI = context.workspaceState.get("gitAPI") as API;
-
-  if (gitAPI === undefined) {
-    return;
-  }
-
-  // Get repository
-  const repository = gitAPI.repositories[0];
-
-  // Subscribe to on Git status change
-  context.subscriptions.push(
-    repository?.state.onDidChange(async () => {
-      const commitAPI = context.workspaceState.get("commitAPI") as CommitAPI;
-      await commitAPI.showAddProjectUpdateNotification(context);
-    })
-  );
-
-  // Try showing the add project update notification
-  const commitAPI = context.workspaceState.get("commitAPI") as CommitAPI;
-  if (commitAPI) {
-    await commitAPI.showAddProjectUpdateNotification(context);
-  }
+  // Setup Git Extension
+  await setupGitAPI(context);
 }
 
-const handleAuth0SessionChange = async (context: vscode.ExtensionContext) => {
-  const commitSession = await getCommitSessions();
-
-  if (!commitSession) {
-    // Remove all workspace state settings for commit
-    await context.workspaceState.update("defaultProject", undefined);
-    await context.workspaceState.update(
-      "commitNotificationInterval",
-      undefined
-    );
-    await context.workspaceState.update(
-      "commitLastNotificationShown",
-      undefined
-    );
-    await context.workspaceState.update("commitAPI", undefined);
-    await context.workspaceState.update("gitAPI", undefined);
-    await context.workspaceState.update("commitUserInfo", undefined);
-
-    return;
-  }
-
-  const commitAPI = await getCommitAPI(context);
-
-  // Add the commitAPI to the workspace state
-  context.workspaceState.update("commitAPI", commitAPI);
-};
-
 const getCommitSessions = async () => {
-  const session = await vscode.authentication.getSession(AUTH0_AUTH_TYPE, [], {
-    createIfNone: false,
-  });
-
-  // decode access token to get expiry time
-
-  if (session) {
-    vscode.window.showInformationMessage(
-      `Welcome ${session.account.label} to Commit!`
+  try {
+    const sessions = await vscode.authentication.getSession(
+      COMMIT_AUTH_TYPE,
+      ["openid", "email"],
+      {
+        createIfNone: false,
+      }
     );
-  }
 
-  return session;
+    if (sessions === undefined) {
+      return;
+    }
+
+    vscode.window.showInformationMessage(
+      `Welcome ${sessions.account.label} to Commit!`
+    );
+    return sessions;
+  } catch (e) {
+    console.log(e);
+  }
 };
 
-const getCommitAPI = async (
+const setupCommitAPI = async (
   context: vscode.ExtensionContext
 ): Promise<CommitAPI | undefined> => {
-  // Check if commitAPI is already initialized in workspace state
+  // Check if Commit API instance exist in workspace state
   let commitAPI = context.workspaceState.get<CommitAPI>("commitAPI");
 
   if (commitAPI) {
@@ -123,19 +83,26 @@ const getCommitAPI = async (
   }
 
   // Get Commit Session
-  const commitSession = await getCommitSessions();
-  if (!commitSession) {
+  const session = await vscode.authentication.getSession(
+    COMMIT_AUTH_TYPE,
+    ["openid", "email"],
+    {
+      createIfNone: false,
+    }
+  );
+
+  if (!session) {
     return;
   }
 
   // Create Apollo Client
-  const commitApolloClient = await getCommitApolloClient(commitSession);
+  const commitApolloClient = await getCommitApolloClient(session);
 
   // Create commitAPI instance
   commitAPI = new CommitAPI(commitApolloClient);
 
   // Set commit session to commitAPI
-  commitAPI.setUserCommitSession(commitSession);
+  commitAPI.setUserCommitSession(session);
 
   // Setup config
   await commitAPI.setupConfig(context);
@@ -143,20 +110,12 @@ const getCommitAPI = async (
   // Add the commitAPI to the workspace state
   context.workspaceState.update("commitAPI", commitAPI);
 
-  // Add userInfo to workspace state
-  // extract email from commit session label "name <email>"
-  const userInfo: UserInfo = {
-    email: commitSession.account.label.split("<")[1].split(">")[0],
-    name: commitSession.account.label.split("<")[0].trim(),
-    id: commitSession.account.id,
-    commits: [],
-  };
-  context.workspaceState.update("commitUserInfo", userInfo);
-
   return commitAPI;
 };
 
-const setupGitAPI = async (context: vscode.ExtensionContext) => {
+const setupGitAPI = async (
+  context: vscode.ExtensionContext
+): Promise<API | undefined> => {
   const extension: vscode.Extension<GitExtension> | undefined =
     vscode.extensions.getExtension("vscode.git");
   if (!extension) {
@@ -164,16 +123,33 @@ const setupGitAPI = async (context: vscode.ExtensionContext) => {
     return;
   }
 
-  const gitExtension = extension.isActive
-    ? extension.exports
-    : await extension.activate();
+  if (!extension.isActive) {
+    await extension.activate();
+  }
+
+  const gitExtension = extension.exports;
 
   const gitAPI: API = gitExtension.getAPI(1);
 
   context.workspaceState.update("gitAPI", gitAPI);
+
+  const repository = gitAPI?.repositories[0];
+
+  if (repository === undefined) {
+    return;
+  }
+
+  // Subscribe to on Git status change
+  context.subscriptions.push(
+    repository.state.onDidChange(async () => {
+      const commitAPI = context.workspaceState.get("commitAPI") as CommitAPI;
+      await commitAPI?.showAddProjectUpdateNotification(context);
+    })
+  );
+
+  return gitAPI;
 };
 
-// This method is called when your extension is deactivated
 export function deactivate() {
-  // Get extension context
+  // nothing to do
 }

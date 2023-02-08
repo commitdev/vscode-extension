@@ -5,3 +5,6 @@ export const COMMIT_APP_BASE_URL = process.env.COMMIT_APP_BASE_URL;
 export const COMMIT_AUTH0_DOMAIN = process.env.COMMIT_AUTH0_DOMAIN;
 export const COMMIT_CLIENT_ID = process.env.COMMIT_CLIENT_ID;
 export const COMMIT_PROJECT_UDPATE_NOTIFICATION_INTERVAL = 1000 * 60 * 60 * 24; // 1 day
+export const COMMIT_AUTH_TYPE = "commit-auth0";
+export const COMMIT_AUTH_NAME = "Commit";
+export const COMMIT_SESSIONS_SECRET_KEY = "commit-auth0.sessions";

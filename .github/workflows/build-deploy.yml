@@ -24,7 +24,7 @@ jobs:
           echo "tag_exists=${{ steps.check_tag_exists.outputs.exists }}" >> $GITHUB_OUTPUT
   build:
     needs: check
-    if: ${{ needs.check.outputs.tag_exists == 'false' }}
+    if: ${{ needs.check_tag_exists.outputs.tag_exists == 'false' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

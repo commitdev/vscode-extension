@@ -72,9 +72,6 @@ jobs:
           COMMIT_AUTH0_DOMAIN : https://commitdev.auth0.com
           COMMIT_CLIENT_ID : ${{ secrets.COMMIT_CLIENT_ID_STAGING }}
 
-      # Rename the VSIX file to the version number
-      - name: Rename VSIX file
-        run: mv *.vsix commit-extension-${{ github.event.inputs.tag }}.vsix
       # Upload the VSIX file as an artifact with version number
       - uses: actions/upload-artifact@v3
         with:
@@ -105,6 +102,8 @@ jobs:
             ${{ github.event.inputs.description }}
           draft: false
           prerelease: false
+
+      # Upload the VSIX file to the Github release
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
         env:

@@ -10,7 +10,7 @@
   },
   "displayName": "Commit Extension",
   "description": "Allow developers to log work on Commit Projects as Latest Updates",
-  "version": "0.0.4",
+  "version": "v0.0.9",
   "icon": "images/icon.png",
   "engines": {
     "vscode": "^1.73.0"

@@ -48,14 +48,25 @@ jobs:
           name: commit-extension-${{ github.event.inputs.tag }}
           path: ./
       
-      # Check if the release already exists
+      # Check if the tag already exists
       - name: Check if release exists
         id: check_release
-        uses: softprops/action-gh-release@v1
+        uses: actions/github-script@v5
         with:
-          tag_name: ${{ github.event.inputs.tag }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const release = await github.repos.getReleaseByTag({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag: context.ref.replace('refs/tags/', '')
+            }).catch(err => {
+              if (err.status === 404) {
+                return null;
+              }
+              throw err;
+            });
+            console.log('Release exists: ' + (release !== null));
+            return release ? { exists: 'true' } : { exists: 'false' };
 
       # Upload the VSIX file to the Github release
       - name: Create Release

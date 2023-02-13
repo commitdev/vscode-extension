@@ -11,6 +11,8 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    outputs:
+      tag_exists: ${{ steps.create_job_outputs.outputs.tag_exists }}
     steps:
       - name: Check if tag already exists
         id: check_tag_exists
@@ -24,7 +26,7 @@ jobs:
           echo "tag_exists=${{ steps.check_tag_exists.outputs.exists }}" >> $GITHUB_OUTPUT
   build:
     needs: check
-    if: ${{ needs.check_tag_exists.outputs.tag_exists == 'false' }}
+    if: ${{ needs.check.outputs.tag_exists == 'false' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -62,18 +64,10 @@ jobs:
         with:
           name: commit-extension-${{ github.event.inputs.tag }}
           path: ./
-      
-      # Check if the tag already exists
-      - name: Check if tag already exists
-        id: check_tag_exists
-        uses: mukunku/tag-exists-action@v1.2.0
-        with:
-          tag: ${{ github.event.inputs.tag }}
 
       # Upload the VSIX file to the Github release
       - name: Create Release
         id: create_release
-        if: ${{ steps.check_tag_exists.outputs.exists == 'false' }}
         uses: actions/create-release@latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -85,7 +79,6 @@ jobs:
           draft: false
           prerelease: false
       - name: Upload Release Asset
-        if: ${{ steps.check_tag_exists.outputs.exists == 'false' }}
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

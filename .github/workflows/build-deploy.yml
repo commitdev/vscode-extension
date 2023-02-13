@@ -57,15 +57,27 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # If the release already exists then exit
-      - name: Exit if release exists
-        if: ${{ steps.check_release.outputs.exists == 'true' }}
-        run: exit 0
-
       # Upload the VSIX file to the Github release
       - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ./*.vsix
+        id: create_release
+        if: ${{ steps.check_release.outputs.exists == 'false' }}
+        uses: actions/create-release@latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.event.inputs.tag }}
+          release_name: ${{ github.event.inputs.tag }}
+          body: |
+            Release ${{ github.event.inputs.tag }}
+          draft: false
+          prerelease: false
+      - name: Upload Release Asset
+        if: ${{ steps.check_release.outputs.exists == 'false' }}
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./commit-extension-${{ github.event.inputs.tag }}.vsix
+          asset_name: commit-extension-${{ github.event.inputs.tag }}.vsix
+          asset_content_type: application/zip

@@ -9,14 +9,13 @@ Allows adding updates to the projects owned by the users
 ## Requirements
 
 - Valid Commit account, as this is needed to get Authenticated
-- Already existing projects.
 
-## Installing
+## Downloading & Installing
 
-As this extension is private, you need to install it from the VSIX file using the command line as follows:
+As this extension is private, you need to manually download the file from latest Release of the project from GitHub account from project's [Latest Release](https://github.com/commitdev/vscode-extension/releases/latest). Click on `.vsix` file to download it. Once you have the file, you can install the extension by following the steps below:
 
 ```bash
-code --install-extension commit-extension-<VERSION NUMBER>.vsix
+code --install-extension <FILE_DOWNLOAD_PATH>/commit-extension-<VERSION_NUMBER>.vsix
 ```
 
 ## Getting Started
@@ -39,19 +38,20 @@ Follow the steps below to add an update to your project:
 - You will see a message `Update added successfully` in the bottom right corner.
 
 ## Known Issues
+
 Following are the known issues with the extension:
 
 - Currently the project structure is not optimized as current version is a POC.
 - There is no testing reports for the extension, thus no CI/CD jobs for that as well.
 
 ## Feature Roadmap
+
 Following are the features that are planned to be added in the future:
 
 - Add ability to link single Git Project to given workspace.
 - Add ability to make other updates such as adding a new project, adding a comment, etc.
 - Update Project View to replicate information from Commit Project page.
 - Add ability to connect Github repository to the project, in order to pull information from Github repo such as code type, language, code precentage etc.
-
 
 ## Resources
 

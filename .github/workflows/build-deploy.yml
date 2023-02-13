@@ -37,6 +37,29 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: 16.19.0
+
+      # Update package.json with the new version number
+      - name: Update package.json
+        uses:
+          actions/github-script@v5
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
+            packageJson.version = '${{ github.event.inputs.tag }}';
+            fs.writeFileSync('./package.json', JSON.stringify(packageJson, null, 2));
+
+      # Push the change to the main branch
+      - name: Push changes to main
+        run: |
+          git config --local user.email "damandhillon08@gmail.com"
+          git config --local user.name "Daman Dhillon"
+          git add package.json
+          git commit -m "Update package.json with version ${{ github.event.inputs.tag }}"
+          git push
+
+
       # Install dependencies
       - run: npm install
       - run: npm install -g vsce
@@ -91,3 +114,4 @@ jobs:
           asset_path: ./commit-extension-${{ github.event.inputs.tag }}.vsix
           asset_name: commit-extension-${{ github.event.inputs.tag }}.vsix
           asset_content_type: application/zip
+

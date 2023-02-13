@@ -91,10 +91,11 @@ export class CommitAPI {
       throw new Error("You need to login to commit");
     }
     try {
+      const userId = this.userCommitSession.account.id;
       const { data } = await this.apolloClient.query({
         query: gql`
             query {
-              projects (creatorUserId: "${this.userCommitSession.account.id}") {
+              projects (userIsCollaborator: "${userId}") {
                 items {
                   id,
                   title,
@@ -147,7 +148,7 @@ export class CommitAPI {
         };
       }) as [Project];
     } catch (error: any) {
-      // console.log(error.message);
+      console.log(error);
       throw new Error("Error getting projects");
     }
   }

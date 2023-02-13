@@ -4,22 +4,16 @@ import {
   DefaultOptions,
   InMemoryCache,
   NormalizedCacheObject,
-  split,
 } from "@apollo/client/core";
 import { setContext } from "@apollo/client/link/context";
-import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
-import { getMainDefinition } from "@apollo/client/utilities";
 import * as fs from "fs";
-import { createClient } from "graphql-ws";
 import fetch from "node-fetch";
 import * as vscode from "vscode";
-import { WebSocket } from "ws";
 import { API, Commit } from "./@types/git";
 import { RegisterCommand, UserInfo } from "./@types/types";
 import {
   COMMIT_API_BASE_URL,
   COMMIT_GRAPHQL_API_URL,
-  COMMIT_GRAPHQL_WS_API_URL,
 } from "./common/constants";
 import path = require("path");
 
@@ -66,34 +60,34 @@ export const getCommitApolloClient = async (
   // Construct concat link
   const concatLink = authLink.concat(httpLink);
 
-  // Construct Split link if WebSocket API URL is defined
-  let splitLink;
-  if (COMMIT_GRAPHQL_WS_API_URL) {
-    const wsLink = new GraphQLWsLink(
-      createClient({
-        webSocketImpl: WebSocket,
-        url: COMMIT_GRAPHQL_WS_API_URL as string,
-      })
-    );
+  // // Construct Split link if WebSocket API URL is defined
+  // let splitLink;
+  // if (COMMIT_GRAPHQL_WS_API_URL) {
+  //   const wsLink = new GraphQLWsLink(
+  //     createClient({
+  //       webSocketImpl: WebSocket,
+  //       url: COMMIT_GRAPHQL_WS_API_URL as string,
+  //     })
+  //   );
 
-    // Construct the aplit link. This will allow the client to use the link based on the actions
-    // being performed. For example, if the action is a subscription, the client will use the
-    // wsLink. If the action is a query or mutation, the client will use the httpLink.
-    splitLink = split(
-      ({ query }) => {
-        const definition = getMainDefinition(query);
-        return (
-          definition.kind === "OperationDefinition" &&
-          definition.operation === "subscription"
-        );
-      },
-      wsLink,
-      authLink.concat(httpLink)
-    );
-  }
+  //   // Construct the aplit link. This will allow the client to use the link based on the actions
+  //   // being performed. For example, if the action is a subscription, the client will use the
+  //   // wsLink. If the action is a query or mutation, the client will use the httpLink.
+  //   splitLink = split(
+  //     ({ query }) => {
+  //       const definition = getMainDefinition(query);
+  //       return (
+  //         definition.kind === "OperationDefinition" &&
+  //         definition.operation === "subscription"
+  //       );
+  //     },
+  //     wsLink,
+  //     authLink.concat(httpLink)
+  //   );
+  // }
 
   return new ApolloClient({
-    link: splitLink ? splitLink : concatLink,
+    link: concatLink,
     cache: new InMemoryCache(),
     defaultOptions,
   });

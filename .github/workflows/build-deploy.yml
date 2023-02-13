@@ -3,11 +3,15 @@ run-name: Initiated by ${{ github.actor }}
 # Run on main branch with tag v*.*.*
 on:
   push:
+    branches:
+      - main
     tags:
       - v*.*.*
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.get_tag.outputs.tag }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -24,10 +28,17 @@ jobs:
           COMMIT_APP_BASE_URL : https://app.commit.dev
           COMMIT_AUTH0_DOMAIN : https://commitdev.auth0.com
           COMMIT_CLIENT_ID : ${{ secrets.COMMIT_CLIENT_ID_STAGING }}
+      # Get most recent tag
+      - name: Get most recent tag
+        id: get_tag
+        run: echo name=tag::$(git describe --tags `git rev-list --tags --max-count=1`) >> $GITHUB_OUTPUT
+      # Rename the VSIX file to the version number
+      - name: Rename VSIX file
+        run: mv *.vsix commit-extension-${{ steps.get_tag.outputs.tag }}.vsix
       # Upload the VSIX file as an artifact with version number
       - uses: actions/upload-artifact@v3
         with:
-          name: commit-extension
+          name: commit-extension-${{ steps.get_tag.outputs.tag }}
           path: ./*.vsix
 
   # Create a release with the version number
@@ -38,9 +49,23 @@ jobs:
       # Download the VSIX file from the artifact
       - uses: actions/download-artifact@v2
         with:
-          name: commit-extension
+          name: commit-extension-${{ needs.build.outputs.tag }}
           path: ./
       
+      # Check if the release already exists
+      - name: Check if release exists
+        id: check_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.build.outputs.tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # If the release already exists then exit
+      - name: Exit if release exists
+        if: ${{ steps.check_release.outputs.exists == 'true' }}
+        run: exit 0
+
       # Upload the VSIX file to the Github release
       - name: Create Release
         uses: softprops/action-gh-release@v1

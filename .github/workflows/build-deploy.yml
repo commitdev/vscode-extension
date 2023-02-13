@@ -79,7 +79,7 @@ jobs:
           tag_name: ${{ github.event.inputs.tag }}
           release_name: ${{ github.event.inputs.tag }}
           body: |
-            Release ${{ github.event.inputs.description }}
+            ${{ github.event.inputs.description }}
           draft: false
           prerelease: false
       - name: Upload Release Asset

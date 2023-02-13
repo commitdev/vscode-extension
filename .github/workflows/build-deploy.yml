@@ -8,6 +8,10 @@ on:
         description: 'Tag to deploy'
         required: true
         default: 'v0.0.0'
+      description:
+        description: 'Description of the release'
+        required: true
+        default: 'Release v0.0.0'
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -60,7 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Download the VSIX file from the artifact
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: commit-extension-${{ github.event.inputs.tag }}
           path: ./
@@ -68,14 +72,14 @@ jobs:
       # Upload the VSIX file to the Github release
       - name: Create Release
         id: create_release
-        uses: actions/create-release@latest
+        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.event.inputs.tag }}
           release_name: ${{ github.event.inputs.tag }}
           body: |
-            Release ${{ github.event.inputs.tag }}
+            Release ${{ github.event.inputs.description }}
           draft: false
           prerelease: false
       - name: Upload Release Asset

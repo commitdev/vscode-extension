@@ -4,7 +4,6 @@ import { Auth0AuthProvider } from "./authProviders/authProvider";
 import setDefaultProject from "./commands/commit/setDefaultProject";
 import shareProject from "./commands/commit/shareProject";
 import shareProjectUpdate from "./commands/commit/shareProjectUpdate";
-import addSubscriptions from "./commands/commit/subscriptions";
 import viewProjects from "./commands/commit/viewProjects";
 import { CommitAPI } from "./commitAPI";
 import { COMMIT_AUTH_TYPE } from "./common/constants";
@@ -36,7 +35,6 @@ export async function activate(this: any, context: vscode.ExtensionContext) {
   // Setup up Commit Commands
   const commands = [
     setDefaultProject,
-    addSubscriptions,
     viewProjects,
     shareProject,
     shareProjectUpdate,
